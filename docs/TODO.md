@@ -145,10 +145,10 @@ verified live without credentials and approval — see
       timeout, rate limit and unconfigured
 - [x] `docs/ai-caption-generator.md`
 - [x] Deployed: 6 callables live (49 functions total)
-- [~] **Needs an OpenAI API key** to generate anything. Without it the dialog
-      reports `Missing: OPENAI_API_KEY (secret)`, which is the correct state
-- [ ] `OPENAI_MODEL` not set — the code ships a fallback, but the model should
-      be chosen deliberately rather than inherited from a constant
+- [x] **Verified live against the real model**: three Darija captions in Arabic
+      script, distinct tones, emojis and CTA, with the seed text respected
+- [ ] `OPENAI_MODEL` still unset, so the code's fallback is in use. It works,
+      but the model should be chosen deliberately rather than inherited
 
 ## Phase 13 — Documentation
 
@@ -218,7 +218,7 @@ method, an approval or an elevated install that cannot be automated.
 | 7 | Pinterest standard access | Live Pinterest publishing |
 | 8 | Google OAuth verification | YouTube beyond 100 test users |
 | 9 | FCM VAPID key | Push notifications |
-| 10 | **OpenAI API key** (`firebase functions:secrets:set OPENAI_API_KEY`) | AI caption generation |
+| 10 | Choose `OPENAI_MODEL` deliberately (the fallback currently works) | Pinning the model instead of inheriting it |
 
 Everything not in that table is either done or genuinely not started, and is
 marked accordingly above.

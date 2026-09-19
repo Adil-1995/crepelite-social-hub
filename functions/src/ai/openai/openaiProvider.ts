@@ -101,13 +101,29 @@ export class OpenAIContentProvider implements AIContentProvider {
       // The error body can echo request content — captions, media hints — so
       // only the vendor's short machine code is kept, never the prose.
       let vendorCode: string | null = null;
+      let vendorParam: string | null = null;
+      let vendorMessage: string | null = null;
       try {
-        const parsedBody = JSON.parse(await res.text()) as { error?: { code?: string; type?: string } };
+        const parsedBody = JSON.parse(await res.text()) as {
+          error?: { code?: string; type?: string; param?: string; message?: string };
+        };
         vendorCode = parsedBody.error?.code ?? parsedBody.error?.type ?? null;
+        vendorParam = parsedBody.error?.param ?? null;
+        // A 400 describes the request shape — a bad model name, an unsupported
+        // parameter — and names no user content, so it is safe to keep and is
+        // the only thing that makes the failure diagnosable. Other statuses
+        // can carry content-policy detail, so their message stays out.
+        vendorMessage = res.status === 400 ? (parsedBody.error?.message ?? '').slice(0, 300) : null;
       } catch {
         vendorCode = null;
       }
-      log.warn('AI provider rejected the request', { status: res.status, vendorCode });
+      log.warn('AI provider rejected the request', {
+        status: res.status,
+        vendorCode,
+        vendorParam,
+        vendorMessage,
+        model: this.model,
+      });
       if (res.status === 429) {
         throw new ProviderError({ code: 'ai_rate_limited', message: 'The model provider is rate limiting us. Try again shortly.', category: 'RATE_LIMIT', retryable: true });
       }

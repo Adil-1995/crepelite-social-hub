@@ -25,8 +25,17 @@ export const isProduction = (): boolean => appEnv() === 'production';
 /** The MockProvider is only ever available outside production. */
 export const mockProviderEnabled = (): boolean => !isProduction() && process.env.ENABLE_MOCK_PROVIDER !== 'false';
 
+/**
+ * Reads a non-secret setting.
+ *
+ * An empty value counts as absent. Template .env files ship keys with nothing
+ * after the `=` so they are easy to fill in, and `?? fallback` would let that
+ * empty string win over the default — silently, and only visible as a failure
+ * far from the cause.
+ */
 export function env(name: string, fallback = ''): string {
-  return process.env[name] ?? fallback;
+  const raw = process.env[name];
+  return raw === undefined || raw.trim() === '' ? fallback : raw;
 }
 
 export const REGION = env('FUNCTIONS_REGION', 'europe-west1');
