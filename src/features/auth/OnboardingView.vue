@@ -84,7 +84,7 @@ async function signOut() {
           <div class="flex flex-col gap-1.5">
             <label for="ws-tz" class="text-sm font-medium text-ink">Timezone</label>
             <Select
-              id="ws-tz"
+              input-id="ws-tz"
               v-model="timezone"
               :options="timezoneOptions"
               option-label="label"

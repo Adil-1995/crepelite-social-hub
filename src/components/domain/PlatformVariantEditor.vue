@@ -140,7 +140,7 @@ function fieldIssue(field: string): ValidationIssue | undefined {
         <div v-if="formatOptions.length > 1" class="flex flex-col gap-1.5">
           <label :for="`format-${variant.channelId}`" class="text-sm font-medium text-ink">Format</label>
           <Select
-            :id="`format-${variant.channelId}`"
+            :input-id="`format-${variant.channelId}`"
             :model-value="variant.format"
             @update:model-value="(v) => emit('patch', { format: v as string })"
             :options="formatOptions"
@@ -280,7 +280,7 @@ function fieldIssue(field: string): ValidationIssue | undefined {
 
             <Select
               v-if="f.type === 'select'"
-              :id="`set-${variant.channelId}-${f.key}`"
+              :input-id="`set-${variant.channelId}-${f.key}`"
               :model-value="settingValue(f.key)"
               :options="optionsFor(f)"
               option-label="label"
@@ -294,7 +294,7 @@ function fieldIssue(field: string): ValidationIssue | undefined {
 
             <MultiSelect
               v-else-if="f.type === 'tags'"
-              :id="`set-${variant.channelId}-${f.key}`"
+              :input-id="`set-${variant.channelId}-${f.key}`"
               :model-value="settingValue(f.key)"
               :options="optionsFor(f)"
               option-label="label"

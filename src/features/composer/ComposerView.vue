@@ -327,7 +327,7 @@ const summaryIssues = computed(() =>
               <div class="flex flex-col gap-1.5">
                 <label for="master-tags" class="text-sm font-medium text-ink">Hashtags</label>
                 <Chips
-                  id="master-tags"
+                  input-id="master-tags"
                   v-model="hashtagInput"
                   multiple
                   :typeahead="false"
@@ -428,7 +428,7 @@ const summaryIssues = computed(() =>
               <div class="flex flex-col gap-1.5">
                 <label for="schedule-at" class="text-sm font-medium text-ink">Date and time</label>
                 <DatePicker
-                  id="schedule-at"
+                  input-id="schedule-at"
                   v-model="scheduledDate"
                   show-time
                   hour-format="24"

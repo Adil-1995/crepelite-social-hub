@@ -298,7 +298,7 @@ async function remove() {
       <div class="flex flex-col gap-3">
         <label for="reschedule-at" class="text-sm font-medium text-ink">New date and time</label>
         <DatePicker
-          id="reschedule-at"
+          input-id="reschedule-at"
           v-model="rescheduleAt"
           show-time
           hour-format="24"

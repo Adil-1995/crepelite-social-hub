@@ -189,7 +189,7 @@ const roleSeverity: Record<Role, 'success' | 'info' | 'secondary' | 'contrast'> 
             <div class="flex flex-col gap-1.5 sm:w-44">
               <label for="invite-role" class="text-sm font-medium text-ink">Role</label>
               <Select
-                id="invite-role"
+                input-id="invite-role"
                 v-model="inviteRole"
                 :options="roleOptions"
                 option-label="label"
@@ -388,7 +388,7 @@ const roleSeverity: Record<Role, 'success' | 'info' | 'secondary' | 'contrast'> 
       <div class="flex flex-col gap-3">
         <label for="transfer-to" class="text-sm font-medium text-ink">New owner</label>
         <Select
-          id="transfer-to"
+          input-id="transfer-to"
           v-model="transferTo"
           :options="transferCandidates"
           option-label="label"

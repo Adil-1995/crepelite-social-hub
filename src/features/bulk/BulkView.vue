@@ -348,18 +348,18 @@ async function create() {
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="flex flex-col gap-1.5">
                 <label for="bulk-from" class="text-sm font-medium text-ink">From</label>
-                <DatePicker id="bulk-from" v-model="fromDate" date-format="d M yy" :min-date="new Date()" fluid />
+                <DatePicker input-id="bulk-from" v-model="fromDate" date-format="d M yy" :min-date="new Date()" fluid />
               </div>
               <div class="flex flex-col gap-1.5">
                 <label for="bulk-to" class="text-sm font-medium text-ink">To</label>
-                <DatePicker id="bulk-to" v-model="toDate" date-format="d M yy" :min-date="fromDate" fluid />
+                <DatePicker input-id="bulk-to" v-model="toDate" date-format="d M yy" :min-date="fromDate" fluid />
               </div>
             </div>
 
             <div class="flex flex-col gap-1.5">
               <label for="bulk-freq" class="text-sm font-medium text-ink">Which days</label>
               <Select
-                id="bulk-freq"
+                input-id="bulk-freq"
                 v-model="frequencyType"
                 :options="frequencyOptions"
                 option-label="label"
@@ -371,7 +371,7 @@ async function create() {
             <div v-if="frequencyType === 'weekdays'" class="flex flex-col gap-1.5">
               <label for="bulk-weekdays" class="text-sm font-medium text-ink">Weekdays</label>
               <MultiSelect
-                id="bulk-weekdays"
+                input-id="bulk-weekdays"
                 v-model="weekdays"
                 :options="weekdayOptions"
                 option-label="label"
@@ -420,7 +420,7 @@ async function create() {
             <div class="flex flex-col gap-1.5">
               <label for="bulk-dist" class="text-sm font-medium text-ink">Order</label>
               <Select
-                id="bulk-dist"
+                input-id="bulk-dist"
                 v-model="distribution"
                 :options="distributionOptions"
                 option-label="label"

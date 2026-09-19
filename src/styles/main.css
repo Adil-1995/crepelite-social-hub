@@ -119,7 +119,14 @@
   @media (pointer: coarse) {
     .p-button:not(.p-button-sm):not(.p-button-text),
     .p-inputtext:not(.p-inputtext-sm),
-    .p-select:not(.p-select-sm) {
+    .p-select:not(.p-select-sm),
+    .p-multiselect,
+    .p-datepicker-input,
+    .p-password-input,
+    /* Stepper headers are their own element, not .p-button, so they need
+       naming explicitly or they stay at 32px on a touch screen. */
+    .p-step-header,
+    .p-tab {
       min-height: 44px;
     }
   }

@@ -143,7 +143,7 @@ const mediaWarnings = computed(() => candidates.value.filter((c) => selected.val
             <div class="flex flex-col gap-1.5">
               <label for="import-source" class="text-sm font-medium text-ink">Account</label>
               <Select
-                id="import-source"
+                input-id="import-source"
                 v-model="sourceChannelId"
                 :options="readableChannels"
                 option-label="label"
@@ -163,11 +163,11 @@ const mediaWarnings = computed(() => candidates.value.filter((c) => selected.val
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="flex flex-col gap-1.5">
                 <label for="import-from" class="text-sm font-medium text-ink">From</label>
-                <DatePicker id="import-from" v-model="fromDate" date-format="d M yy" :max-date="toDate" fluid />
+                <DatePicker input-id="import-from" v-model="fromDate" date-format="d M yy" :max-date="toDate" fluid />
               </div>
               <div class="flex flex-col gap-1.5">
                 <label for="import-to" class="text-sm font-medium text-ink">To</label>
-                <DatePicker id="import-to" v-model="toDate" date-format="d M yy" :max-date="new Date()" fluid />
+                <DatePicker input-id="import-to" v-model="toDate" date-format="d M yy" :max-date="new Date()" fluid />
               </div>
             </div>
 

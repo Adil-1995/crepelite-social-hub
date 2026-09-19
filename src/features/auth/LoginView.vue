@@ -148,7 +148,7 @@ function switchTo(m: Mode) {
           <div v-if="mode !== 'reset'" class="flex flex-col gap-1.5">
             <label for="password" class="text-sm font-medium text-ink">Password</label>
             <Password
-              id="password"
+              input-id="password"
               v-model="password"
               :feedback="mode === 'signup'"
               toggle-mask
