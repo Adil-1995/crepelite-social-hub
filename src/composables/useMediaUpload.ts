@@ -136,7 +136,11 @@ export function useMediaUpload(workspaceId: () => string | null) {
 
     item.state = 'uploading';
     const originalRef = storageRef(storage, `workspaces/${ws}/media/${mediaId}/original.${ext}`);
-    const task = uploadBytesResumable(originalRef, item.file, { contentType: item.file.type });
+    // Some files arrive with an empty `type`. Storage rules require a real
+    // image/* or video/* content type, so fall back to one derived from the
+    // extension rather than sending an empty string.
+    const contentType = item.file.type || (item.kind === 'video' ? `video/${ext}` : `image/${ext === 'jpg' ? 'jpeg' : ext}`);
+    const task = uploadBytesResumable(originalRef, item.file, { contentType });
     tasks.set(item.id, task);
 
     try {
@@ -156,7 +160,14 @@ export function useMediaUpload(workspaceId: () => string | null) {
         item.state = 'cancelled';
       } else {
         item.state = 'error';
-        item.error = code === 'storage/unauthorized' ? 'You do not have permission to upload here.' : 'Upload failed.';
+        // Keep the provider's own wording: swallowing it turns every storage
+        // problem into the same unactionable sentence.
+        const detail = (e as Error)?.message ?? '';
+        item.error =
+          code === 'storage/unauthorized'
+            ? `Storage refused the upload (${code}). ${detail}`
+            : `Upload failed (${code || 'unknown'}). ${detail}`;
+        console.error('[crepelite] upload failed', { code, path: originalRef.fullPath, detail, error: e });
       }
       tasks.delete(item.id);
       return null;
@@ -181,7 +192,8 @@ export function useMediaUpload(workspaceId: () => string | null) {
         workspaceId: ws,
         mediaId,
         fileName: item.file.name.slice(0, 300),
-        mimeType: item.file.type,
+        // Must match what was actually stored, or the server-side re-check fails.
+        mimeType: contentType,
         size: item.file.size,
         width: info.width,
         height: info.height,
