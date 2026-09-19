@@ -30,7 +30,9 @@
     "test:all": "npm run test && npm run test:emulator",
     "deploy:staging": "firebase deploy --project staging",
     "deploy:production": "node scripts/confirm-production.mjs && firebase deploy --project production",
-    "deploy:worker": "npm --workspace worker run deploy"
+    "deploy:worker": "npm --workspace worker run deploy",
+    "seed": "node scripts/seed.mjs",
+    "dev:full": "concurrently -n emulators,vite -c blue,green \"npm run emulators\" \"npm run dev\""
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.3",
@@ -53,6 +55,7 @@
     "@types/node": "^24.0.0",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/test-utils": "^2.5.1",
+    "concurrently": "^9.2.4",
     "eslint": "^10.11.0",
     "eslint-plugin-vue": "^10.11.0",
     "globals": "^16.0.0",

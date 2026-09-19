@@ -55,7 +55,9 @@ describe('status maps', () => {
   });
 });
 
-const mountOpts = { global: { plugins: [[PrimeVue, { theme: 'none' }] as const] } };
+// PrimeVue needs installing for its components to resolve; the theme is not
+// exercised here, so it is switched off to keep the mount cheap.
+const mountOpts = { global: { plugins: [[PrimeVue, { theme: 'none' }] as [typeof PrimeVue, Record<string, unknown>]] } };
 
 describe('status tags', () => {
   it('renders a text label, not just a colour', () => {
