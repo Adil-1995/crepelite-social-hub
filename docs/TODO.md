@@ -20,7 +20,7 @@ Last verified: 2026-09-19 — `typecheck`, `lint`, `test` (148 unit tests) and
 - [x] `.gitignore`, `.gitattributes`, initial commit
 - [x] `eslint.config.js` (flat config)
 - [x] `vitest.config.ts` with five projects
-- [ ] GitHub remote — **blocked: `gh auth login` needs a human**
+- [x] GitHub remote: https://github.com/Adil-1995/crepelite-social-hub
 
 ## Phase 1 — Core foundation
 
@@ -125,15 +125,27 @@ verified live without credentials and approval — see
 
 ## Phase 14 — Infrastructure
 
-- [x] Firebase project `creplite` identified; aliases configured
-- [x] `.env` / `.env.example`
-- [x] Emulator configuration in `firebase.json`
-- [x] Seed script, guarded against ever touching a real project
-- [ ] Blaze billing — **needs a human with a billing account**
-- [ ] Google Cloud APIs enabled — **needs `gcloud`, which is not installed**
-- [ ] Secrets in Secret Manager — **needs the provider credentials**
-- [ ] Deployed — blocked on billing
-- [ ] Budget alerts — **billing-account permission, cannot be done from the CLI**
+Project: **`crepelite-social-hub`** (733722881127).
+Live at **https://crepelite-social-hub.web.app**.
+
+- [x] Firebase project configured; `.firebaserc` aliases set
+- [x] Web app registered; `.env` and `.env.production` wired to it
+- [x] Firestore database created in **europe-west1**, same region as the
+      functions and the task queue
+- [x] Firestore rules deployed
+- [x] Storage rules written (deploy blocked: Storage needs Blaze)
+- [x] 15 composite indexes deployed and confirmed live
+- [x] Hosting deployed; PWA manifest, service worker, icons and security
+      headers all verified over HTTPS
+- [x] `functions/.env.crepelite-social-hub` (public config only)
+- [x] Emulator configuration, seed script guarded against real projects
+- [ ] **Blaze billing** — everything below is blocked on it
+- [ ] Firestore TTL policy on `oauthStates.expiresAt` (needs billing)
+- [ ] Firebase Storage bucket (needs billing)
+- [ ] Secrets in Secret Manager (needs billing)
+- [ ] Cloud Functions, Tasks, Scheduler (need billing)
+- [ ] Auth sign-in providers enabled (console, one-time)
+- [ ] Budget alerts — billing-account permission, not available from the CLI
 
 ---
 
@@ -145,9 +157,9 @@ method, an approval or an elevated install that cannot be automated.
 | # | Blocker | Unblocks |
 | --- | --- | --- |
 | 1 | Install a JDK 21+ (needs UAC elevation) | Emulators, rules tests, integration tests, seeding |
-| 2 | Enable Blaze billing on `creplite` | Functions, Tasks, Scheduler, Cloud Run, deployment |
-| 3 | `gh auth login` | GitHub remote |
-| 4 | Install `gcloud` | API enablement, queue creation, budget alerts |
+| 2 | **Enable Blaze billing on `crepelite-social-hub`** | Functions, Tasks, Scheduler, Cloud Run, Storage, Secret Manager, the TTL policy — in short, everything server-side |
+| 3 | Enable Email/Password and Google in Authentication (console) | Sign-in |
+| 4 | Install `gcloud` (optional) | Queue pre-creation, budget alerts |
 | 5 | Meta App Review | Live Facebook and Instagram publishing |
 | 6 | TikTok Content Posting audit | Public TikTok posts |
 | 7 | Pinterest standard access | Live Pinterest publishing |

@@ -23,7 +23,8 @@ dev-dist/
 # ids and URLs — every actual secret lives in Secret Manager.
 !.env.example
 !**/.env.example
-!functions/.env.creplite
+!functions/.env.crepelite-social-hub
+!.env.production
 !functions/.secret.local.example
 
 # Firebase

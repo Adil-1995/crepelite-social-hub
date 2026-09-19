@@ -1,5 +1,7 @@
 {
   "projects": {
+    "default": "crepelite-social-hub",
+    "production": "crepelite-social-hub",
     "development": "demo-crepelite"
   },
   "targets": {},

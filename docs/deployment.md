@@ -13,8 +13,13 @@ firebase projects:list
 
 | Alias | Project | Use |
 | --- | --- | --- |
-| `production` (also `default`) | `creplite` | The live deployment |
+| `production` (also `default`) | `crepelite-social-hub` | The live deployment |
 | `development` | `demo-crepelite` | Emulator only; no cloud project exists |
+
+Firestore lives in **europe-west1**, the same region as the functions and the
+task queue, so a publish never crosses a continent. A Firestore location cannot
+be changed after creation — if you ever recreate the database, set the location
+explicitly rather than letting the CLI default to `nam5`.
 
 ### Adding staging
 
@@ -38,7 +43,7 @@ Cloud Functions v2, Cloud Tasks and Cloud Run all require the **Blaze**
 
 **This step cannot be automated** — it needs a billing account and a human:
 
-1. Open <https://console.firebase.google.com/project/creplite/usage/details>
+1. Open <https://console.firebase.google.com/project/crepelite-social-hub/usage/details>
 2. Select **Modify plan → Blaze**
 3. Attach a billing account
 
@@ -48,7 +53,7 @@ few hundred scheduled posts a month typically stays inside them.
 ## 2. Google Cloud APIs
 
 ```bash
-gcloud config set project creplite
+gcloud config set project crepelite-social-hub
 gcloud services enable \
   cloudfunctions.googleapis.com \
   run.googleapis.com \
@@ -75,14 +80,14 @@ Provider credentials go in Secret Manager, never in a file and never in the
 repository.
 
 ```bash
-firebase functions:secrets:set META_APP_SECRET --project creplite
-firebase functions:secrets:set TIKTOK_CLIENT_SECRET --project creplite
-firebase functions:secrets:set PINTEREST_CLIENT_SECRET --project creplite
-firebase functions:secrets:set GOOGLE_OAUTH_CLIENT_SECRET --project creplite
+firebase functions:secrets:set META_APP_SECRET --project crepelite-social-hub
+firebase functions:secrets:set TIKTOK_CLIENT_SECRET --project crepelite-social-hub
+firebase functions:secrets:set PINTEREST_CLIENT_SECRET --project crepelite-social-hub
+firebase functions:secrets:set GOOGLE_OAUTH_CLIENT_SECRET --project crepelite-social-hub
 
 # Application secrets
-firebase functions:secrets:set APP_SIGNING_KEY --project creplite
-firebase functions:secrets:set TOKEN_ENCRYPTION_KEY --project creplite
+firebase functions:secrets:set APP_SIGNING_KEY --project crepelite-social-hub
+firebase functions:secrets:set TOKEN_ENCRYPTION_KEY --project crepelite-social-hub
 ```
 
 Generate the two application secrets with real entropy:
@@ -99,8 +104,8 @@ Non-secret values (app ids, base URLs) go in `functions/.env.<alias>`:
 
 ```
 APP_ENV=production
-PUBLIC_APP_URL=https://creplite.web.app
-OAUTH_REDIRECT_URI=https://creplite.web.app/api/oauth/callback
+PUBLIC_APP_URL=https://crepelite-social-hub.web.app
+OAUTH_REDIRECT_URI=https://crepelite-social-hub.web.app/api/oauth/callback
 META_APP_ID=...
 TIKTOK_CLIENT_KEY=...
 PINTEREST_APP_ID=...
@@ -133,10 +138,10 @@ Deploy in dependency order so nothing runs against rules or indexes that do not
 exist yet:
 
 ```bash
-firebase deploy --only firestore:indexes --project creplite
-firebase deploy --only firestore:rules,storage --project creplite
-firebase deploy --only functions --project creplite
-firebase deploy --only hosting --project creplite
+firebase deploy --only firestore:indexes --project crepelite-social-hub
+firebase deploy --only firestore:rules,storage --project crepelite-social-hub
+firebase deploy --only functions --project crepelite-social-hub
+firebase deploy --only hosting --project crepelite-social-hub
 ```
 
 Or everything at once:
@@ -184,7 +189,7 @@ gcloud scheduler jobs list --location=europe-west1
 ## 7. Verify the deployment
 
 ```bash
-firebase hosting:sites:list --project creplite
+firebase hosting:sites:list --project crepelite-social-hub
 ```
 
 Then walk the smoke test:
@@ -205,7 +210,7 @@ Then walk the smoke test:
 Watch the logs while testing:
 
 ```bash
-firebase functions:log --project creplite
+firebase functions:log --project crepelite-social-hub
 ```
 
 ## Budget alerts
@@ -215,7 +220,7 @@ them and neither can a project-scoped token. This step is manual:
 
 1. <https://console.cloud.google.com/billing> → your billing account
 2. **Budgets & alerts → Create budget**
-3. Scope it to the `creplite` project
+3. Scope it to the `crepelite-social-hub` project
 4. Suggested thresholds: **€5, €10, €20, €30**
 5. Alert at 50%, 90% and 100% of each
 
@@ -226,8 +231,8 @@ normal project owner.
 ## Rollback
 
 ```bash
-firebase hosting:rollback --project creplite       # previous hosting release
-firebase functions:delete <name> --project creplite
+firebase hosting:rollback --project crepelite-social-hub       # previous hosting release
+firebase functions:delete <name> --project crepelite-social-hub
 ```
 
 Firestore rules and indexes are versioned in git — redeploy the previous commit
