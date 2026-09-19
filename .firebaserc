@@ -1,7 +1,5 @@
 {
   "projects": {
-    "default": "creplite",
-    "production": "creplite",
     "development": "demo-crepelite"
   },
   "targets": {},

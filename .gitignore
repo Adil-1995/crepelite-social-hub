@@ -14,10 +14,17 @@ dev-dist/
 # Environment & secrets — never commit these
 .env
 .env.*
-!.env.example
 *.pem
 *serviceAccount*.json
 *credentials*.json
+
+# Exceptions: templates and non-secret Firebase Functions config.
+# Firebase requires the .env.<alias> filename, and these files hold only public
+# ids and URLs — every actual secret lives in Secret Manager.
+!.env.example
+!**/.env.example
+!functions/.env.creplite
+!functions/.secret.local.example
 
 # Firebase
 .firebase/
