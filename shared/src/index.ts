@@ -17,4 +17,5 @@ export { TIKTOK_PRIVACY_LEVELS, tiktokManifest } from './providers/manifests/tik
 export { pinterestManifest } from './providers/manifests/pinterest';
 export { YOUTUBE_CATEGORIES, youtubeManifest } from './providers/manifests/youtube';
 export { MOCK_OUTCOMES, mockManifest } from './providers/manifests/mock';
+export * from './ai/types';
 export * from './schemas/api';

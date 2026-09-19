@@ -40,9 +40,12 @@ export const GOOGLE_OAUTH_CLIENT_SECRET = defineSecret('GOOGLE_OAUTH_CLIENT_SECR
 export const APP_SIGNING_KEY = defineSecret('APP_SIGNING_KEY');
 /** Only used when KMS_KEY_NAME is empty (emulator / development). */
 export const TOKEN_ENCRYPTION_KEY = defineSecret('TOKEN_ENCRYPTION_KEY');
+export const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
 
 export const PROVIDER_SECRETS = [META_APP_SECRET, TIKTOK_CLIENT_SECRET, PINTEREST_CLIENT_SECRET, GOOGLE_OAUTH_CLIENT_SECRET];
 export const CORE_SECRETS = [APP_SIGNING_KEY, TOKEN_ENCRYPTION_KEY];
+/** Bound only to the AI callables, so the key is not readable from publishing code. */
+export const AI_SECRETS = [OPENAI_API_KEY];
 export const ALL_SECRETS = [...PROVIDER_SECRETS, ...CORE_SECRETS];
 
 /** Reads a secret safely: returns '' when unset or when the placeholder "unset" is stored. */

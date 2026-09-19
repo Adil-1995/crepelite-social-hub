@@ -124,6 +124,32 @@ verified live without credentials and approval — see
       by `npm run typecheck` — they were outside every project before, which
       had already let three type errors through in the shared suite
 
+## Phase 15 — AI caption generation
+
+- [x] Provider contract + registry (`AIContentProvider`, `AIProviderRegistry`)
+- [x] OpenAI implementation; MockAIContentProvider for tests
+- [x] Darija-in-Arabic-script as the shipped default, with the register named
+      and the MSA giveaways banned in the prompt
+- [x] Grounding rules: no invented ingredients, promotions, prices or locations
+- [x] Image analysis read server-side with the admin SDK — no public objects
+- [x] Video analysed from 3 browser-extracted frames (no ffmpeg in Functions)
+- [x] 1 or 3 suggestions, per-suggestion rewrites, copy, edit, use
+- [x] "Adaptar a plataformas" writes one variant per destination into PostVariant,
+      respecting each manifest's fields
+- [x] Never publishes: the generator has no path to the publishing engine
+- [x] Per-workspace quota, reserved before the call, transactional
+- [x] `aiGenerations` usage log with token counts and acceptance
+- [x] Settings → AI content (language, tone, toggles, brand context, forbidden claims)
+- [x] Firestore rules: settings and log readable by members, quota server-only
+- [x] 31 tests against the mock — every UI state, including provider failure,
+      timeout, rate limit and unconfigured
+- [x] `docs/ai-caption-generator.md`
+- [x] Deployed: 6 callables live (49 functions total)
+- [~] **Needs an OpenAI API key** to generate anything. Without it the dialog
+      reports `Missing: OPENAI_API_KEY (secret)`, which is the correct state
+- [ ] `OPENAI_MODEL` not set — the code ships a fallback, but the model should
+      be chosen deliberately rather than inherited from a constant
+
 ## Phase 13 — Documentation
 
 - [x] `README.md`
@@ -192,6 +218,7 @@ method, an approval or an elevated install that cannot be automated.
 | 7 | Pinterest standard access | Live Pinterest publishing |
 | 8 | Google OAuth verification | YouTube beyond 100 test users |
 | 9 | FCM VAPID key | Push notifications |
+| 10 | **OpenAI API key** (`firebase functions:secrets:set OPENAI_API_KEY`) | AI caption generation |
 
 Everything not in that table is either done or genuinely not started, and is
 marked accordingly above.

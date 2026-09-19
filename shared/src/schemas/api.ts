@@ -199,3 +199,77 @@ export const notificationPrefsSchema = z.object({
   onReauth: z.boolean(),
 });
 export const registerPushTokenSchema = z.object({ token: z.string().min(10).max(4096), platform: z.string().max(200).default('') });
+
+// ---------------------------------------------------------------------------
+// AI caption generation
+// ---------------------------------------------------------------------------
+
+const aiLanguage = z.enum(['ary', 'ar', 'fr', 'en']);
+const aiTone = z.enum(['natural', 'promotional', 'reel', 'elegant', 'brand']);
+
+/**
+ * A frame the browser extracted from a video, as a data URL.
+ *
+ * Cloud Functions have no ffmpeg, so decoding happens where the video is
+ * already decoded — the browser. Sending two or three small JPEGs costs far
+ * less than shipping the whole file anywhere.
+ */
+const aiFrame = z
+  .string()
+  .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/, 'Expected a base64 image data URL')
+  .max(2_000_000);
+
+export const aiGenerateSchema = z.object({
+  workspaceId: id,
+  postId: id.nullable().default(null),
+  mediaIds: z.array(id).max(10).default([]),
+  /** Browser-extracted video frames; ignored when the media is an image. */
+  frames: z.array(aiFrame).max(4).default([]),
+  language: aiLanguage,
+  tone: aiTone,
+  useEmojis: z.boolean().default(true),
+  useHashtags: z.boolean().default(true),
+  useCta: z.boolean().default(true),
+  mentionLocation: z.boolean().default(false),
+  /** 1 or 3 — a single caption, or one per suggestion tone. */
+  count: z.union([z.literal(1), z.literal(3)]).default(1),
+  seedText: z.string().max(5000).default(''),
+});
+
+export const aiRewriteSchema = z.object({
+  workspaceId: id,
+  postId: id.nullable().default(null),
+  text: z.string().min(1).max(5000),
+  instruction: z.enum(['shorter', 'longer', 'more_promotional', 'more_natural', 'add_emojis', 'remove_emojis', 'add_cta']),
+  language: aiLanguage,
+  tone: aiTone,
+});
+
+export const aiAdaptSchema = z.object({
+  workspaceId: id,
+  postId: id.nullable().default(null),
+  text: z.string().min(1).max(5000),
+  language: aiLanguage,
+  tone: aiTone,
+  useEmojis: z.boolean().default(true),
+  useHashtags: z.boolean().default(true),
+  /** Channels to tailor for; each returns content shaped by its manifest. */
+  channelIds: z.array(id).min(1).max(20),
+});
+
+export const aiSettingsSchema = z.object({
+  workspaceId: id,
+  defaultLanguage: aiLanguage,
+  defaultTone: aiTone,
+  useEmojis: z.boolean(),
+  useHashtags: z.boolean(),
+  useCta: z.boolean(),
+  mentionLocation: z.boolean(),
+  brandContext: z.string().max(2000),
+  forbiddenClaims: z.array(z.string().trim().min(1).max(120)).max(20).default([]),
+  defaultLocation: z.string().max(200).default(''),
+  defaultHashtags: z.array(hashtag).max(30).default([]),
+  enabled: z.boolean().default(true),
+});
+
+export const aiMarkAcceptedSchema = z.object({ workspaceId: id, generationId: id });

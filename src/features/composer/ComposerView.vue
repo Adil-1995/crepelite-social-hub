@@ -31,6 +31,8 @@ import MediaPicker from '@/components/domain/MediaPicker.vue';
 import ScheduleSummary from '@/components/domain/ScheduleSummary.vue';
 import ProviderIcon from '@/components/domain/ProviderIcon.vue';
 import ErrorState from '@/components/domain/ErrorState.vue';
+import AiCaptionDialog from '@/components/domain/AiCaptionDialog.vue';
+import { api } from '@/services/api';
 
 /**
  * Post composer: one screen.
@@ -53,6 +55,8 @@ const { success, reportApiError, confirmDestructive } = useFeedback();
 const c = useComposer(() => props.postId);
 
 const pickerOpen = ref(false);
+const aiOpen = ref(false);
+const adapting = ref(false);
 const hashtagInput = ref<string[]>([]);
 const busy = ref(false);
 /** Phones cannot show editor and preview at once. */
@@ -118,6 +122,74 @@ function moveMedia(id: string, delta: number) {
 async function onMediaConfirm(ids: string[]) {
   c.draft.mediaIds = ids;
   await c.fetchMedia(ids);
+}
+
+/** Inserts a generated caption. Never silently replaces what the user wrote. */
+async function useGenerated(text: string, hashtags: string[]) {
+  const existing = c.draft.masterContent.text.trim();
+  if (existing && existing !== text.trim()) {
+    const replace = await confirmDestructive({
+      header: 'Replace your caption?',
+      message: 'You already wrote something. Replace it with the generated caption?',
+      acceptLabel: 'Replace',
+      rejectLabel: 'Keep mine',
+      icon: 'pi pi-sparkles',
+    });
+    if (!replace) return;
+  }
+  c.draft.masterContent.text = text;
+  if (hashtags.length) {
+    const merged = [...new Set([...c.draft.masterContent.hashtags, ...hashtags])].slice(0, 60);
+    c.draft.masterContent.hashtags = merged;
+    hashtagInput.value = [...merged];
+  }
+}
+
+/**
+ * Asks the model for one variant per destination, shaped by each network's
+ * declared fields, and switches those variants to custom so they stick.
+ */
+async function adaptToPlatforms() {
+  if (!ws.workspaceId || !c.draft.variants.length || adapting.value) return;
+  const text = c.draft.masterContent.text.trim();
+  if (!text) {
+    reportApiError(new Error('Write a caption first.'), 'Nothing to adapt');
+    return;
+  }
+  adapting.value = true;
+  try {
+    // Language and tone are workspace configuration, not constants — a
+    // workspace writing in French must not get Darija back.
+    const status = await api.getAiStatus({ workspaceId: ws.workspaceId });
+    const res = await api.adaptCaption({
+      workspaceId: ws.workspaceId,
+      postId: c.draft.postId,
+      text,
+      language: status.settings.defaultLanguage,
+      tone: status.settings.defaultTone,
+      useEmojis: status.settings.useEmojis,
+      useHashtags: status.settings.useHashtags,
+      channelIds: c.draft.variants.map((v) => v.channelId),
+    });
+
+    for (const variant of res.variants) {
+      const target = c.draft.variants.find((v) => v.channelId === variant.channelId);
+      if (!target) continue;
+      target.syncMode = 'custom';
+      target.content = {
+        text: variant.text || target.content.text,
+        title: variant.title || target.content.title,
+        description: variant.description || target.content.description,
+        hashtags: variant.hashtags.length ? variant.hashtags : target.content.hashtags,
+        link: target.content.link,
+      };
+    }
+    success('Adapted', `${res.variants.length} destinations tailored.`);
+  } catch (e) {
+    reportApiError(e, 'Could not adapt the caption');
+  } finally {
+    adapting.value = false;
+  }
 }
 
 const blockedCount = computed(() => c.blockingChannels.value.length);
@@ -320,6 +392,18 @@ onBeforeRouteLeave(async () => {
             fluid
             placeholder="What do you want to say?"
           />
+          <div class="flex flex-wrap items-center gap-2">
+            <Button label="✨ Generar con IA" size="small" severity="secondary" outlined @click="aiOpen = true" />
+            <Button
+              label="✨ Adaptar a plataformas"
+              size="small"
+              severity="secondary"
+              text
+              :loading="adapting"
+              :disabled="!c.draft.variants.length || !c.draft.masterContent.text.trim()"
+              @click="adaptToPlatforms"
+            />
+          </div>
           <small class="text-ink-soft">Each network trims this to its own limit — the previews show where.</small>
         </section>
 
@@ -500,5 +584,13 @@ onBeforeRouteLeave(async () => {
     </footer>
 
     <MediaPicker v-model:visible="pickerOpen" :selected="c.draft.mediaIds" @confirm="onMediaConfirm" />
+
+    <AiCaptionDialog
+      v-model:visible="aiOpen"
+      :media="mediaAssets"
+      :post-id="c.draft.postId"
+      :current-text="c.draft.masterContent.text"
+      @use="useGenerated"
+    />
   </div>
 </template>

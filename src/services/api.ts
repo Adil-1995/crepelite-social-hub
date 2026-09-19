@@ -32,6 +32,15 @@ import type {
   Role,
   DeliveryStatus,
   ValidationIssue,
+  aiGenerateSchema,
+  aiRewriteSchema,
+  aiAdaptSchema,
+  aiSettingsSchema,
+  aiMarkAcceptedSchema,
+  AiCaptionSuggestion,
+  AiContentSettings,
+  AiMediaUnderstanding,
+  AiPlatformVariant,
 } from '@shared/index';
 import { functions } from '@/app/firebase';
 
@@ -58,6 +67,29 @@ export interface ProviderStatus {
   mockEnabled: boolean;
   families: Array<{ family: string; displayName: string; configured: boolean; missing: string[]; providers: string[] }>;
   notices: { tiktokAudited: boolean; youtubeAudited: boolean; pinterestSandbox: boolean };
+}
+
+export interface AiQuotaState {
+  dayRemaining: number;
+  hourRemaining: number;
+}
+
+export interface AiStatus {
+  configured: boolean;
+  provider: string | null;
+  model: string | null;
+  missing: string[];
+  settings: AiContentSettings;
+  quota: AiQuotaState;
+}
+
+export interface AiGenerateResult {
+  generationId: string;
+  suggestions: AiCaptionSuggestion[];
+  understanding: AiMediaUnderstanding | null;
+  provider: string;
+  model: string;
+  quota: AiQuotaState;
 }
 
 export interface BulkItemResult {
@@ -109,6 +141,13 @@ export const api = {
 
   createBulkSchedule: call<In<typeof bulkScheduleSchema> & { jobId: string }, { jobId: string; results: BulkItemResult[] }>('createBulkSchedule'),
   fetchImportCandidates: call<In<typeof fetchImportSchema>, { importJobId: string; candidates: ImportCandidate[] }>('fetchImportCandidates'),
+  getAiStatus: call<In<typeof workspaceRef>, AiStatus>('getAiStatus'),
+  generateCaption: call<In<typeof aiGenerateSchema>, AiGenerateResult>('generateCaption'),
+  rewriteCaption: call<In<typeof aiRewriteSchema>, { generationId: string; text: string; quota: AiQuotaState }>('rewriteCaption'),
+  adaptCaption: call<In<typeof aiAdaptSchema>, { generationId: string; variants: AiPlatformVariant[]; quota: AiQuotaState }>('adaptCaption'),
+  markAiGenerationAccepted: call<In<typeof aiMarkAcceptedSchema>, { ok: true }>('markAiGenerationAccepted'),
+  updateAiSettings: call<In<typeof aiSettingsSchema>, { ok: true; settings: AiContentSettings }>('updateAiSettings'),
+
   importPosts: call<
     In<typeof importPostsSchema>,
     { drafts: Array<{ externalPostId: string; postId: string; mediaReady: boolean; note: string | null }>; bulk: { jobId: string; results: BulkItemResult[] } | null }

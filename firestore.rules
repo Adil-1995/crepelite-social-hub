@@ -109,6 +109,26 @@ service cloud.firestore {
         allow read: if isMember(w);
         allow write: if false;
       }
+
+      // AI settings are workspace configuration, readable by members so the
+      // composer can apply them without a round trip.
+      match /settings/{settingId} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      // Usage log. Readable so a workspace can see what it is spending;
+      // written only by the callables.
+      match /aiGenerations/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      // Spend counters are server bookkeeping: a client that could edit these
+      // could lift its own cap.
+      match /aiQuota/{id} {
+        allow read, write: if false;
+      }
     }
 
     // ------------------------------------------------- server-only (no client)

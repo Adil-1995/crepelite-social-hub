@@ -23,6 +23,9 @@ import { useUiStore, type ThemeMode } from '@/stores/ui';
 import { useFeedback } from '@/composables/useFeedback';
 import { usePush } from '@/composables/usePush';
 import { timezoneOptions } from '@/lib/timezones';
+import Textarea from 'primevue/textarea';
+import AutoComplete from 'primevue/autocomplete';
+import { AI_LANGUAGES, AI_TONES, DEFAULT_AI_SETTINGS, type AiContentSettings } from '@shared/index';
 
 /** Workspace, appearance and notification settings. */
 const ws = useWorkspaceStore();
@@ -52,6 +55,7 @@ watch(
 );
 
 onMounted(async () => {
+  void loadAi();
   if (!auth.user) return;
   const snap = await getDoc(doc(db, `users/${auth.user.uid}`)).catch(() => null);
   if (snap?.exists()) {
@@ -104,6 +108,60 @@ const themeOptions: Array<{ label: string; value: ThemeMode }> = [
   { label: 'System', value: 'system' },
 ];
 
+// ── AI content ────────────────────────────────────────────────────────────
+const ai = ref<AiContentSettings>({ ...DEFAULT_AI_SETTINGS });
+const aiStatus = ref<{ configured: boolean; provider: string | null; model: string | null; missing: string[] } | null>(null);
+const aiHashtags = ref<string[]>([]);
+const aiClaims = ref<string[]>([]);
+const savingAi = ref(false);
+const loadingAi = ref(false);
+
+const aiLanguageOptions = AI_LANGUAGES.map((l) => ({ label: l.label, value: l.value }));
+const aiToneOptions = AI_TONES.map((t) => ({ label: t.label + ' · ' + t.labelLatin, value: t.value }));
+
+async function loadAi() {
+  if (!ws.workspaceId) return;
+  loadingAi.value = true;
+  try {
+    const s = await api.getAiStatus({ workspaceId: ws.workspaceId });
+    ai.value = { ...s.settings };
+    aiHashtags.value = [...s.settings.defaultHashtags];
+    aiClaims.value = [...s.settings.forbiddenClaims];
+    aiStatus.value = { configured: s.configured, provider: s.provider, model: s.model, missing: s.missing };
+  } catch {
+    // A workspace whose deployment has no key still renders the form; the
+    // settings are saved and take effect once a key exists.
+  } finally {
+    loadingAi.value = false;
+  }
+}
+
+async function saveAi() {
+  if (!ws.workspaceId) return;
+  savingAi.value = true;
+  try {
+    await api.updateAiSettings({
+      workspaceId: ws.workspaceId,
+      defaultLanguage: ai.value.defaultLanguage,
+      defaultTone: ai.value.defaultTone,
+      useEmojis: ai.value.useEmojis,
+      useHashtags: ai.value.useHashtags,
+      useCta: ai.value.useCta,
+      mentionLocation: ai.value.mentionLocation,
+      brandContext: ai.value.brandContext,
+      forbiddenClaims: aiClaims.value,
+      defaultLocation: ai.value.defaultLocation,
+      defaultHashtags: aiHashtags.value,
+      enabled: ai.value.enabled,
+    });
+    success('AI settings saved');
+  } catch (e) {
+    reportApiError(e, 'Could not save the AI settings');
+  } finally {
+    savingAi.value = false;
+  }
+}
+
 const notificationRows: Array<{ key: keyof NotificationPrefs; label: string; description: string }> = [
   { key: 'onFailed', label: 'A publication fails', description: 'A destination could not publish.' },
   { key: 'onPartial', label: 'Only some destinations publish', description: 'The post went out partially.' },
@@ -118,6 +176,7 @@ const notificationRows: Array<{ key: keyof NotificationPrefs; label: string; des
       <TabList>
         <Tab value="workspace">Workspace</Tab>
         <Tab value="notifications">Notifications</Tab>
+        <Tab value="ai">AI content</Tab>
         <Tab value="appearance">Appearance</Tab>
       </TabList>
 
@@ -232,6 +291,112 @@ const notificationRows: Array<{ key: keyof NotificationPrefs; label: string; des
               </div>
             </template>
           </Card>
+        </TabPanel>
+
+        <!-- AI content -->
+        <TabPanel value="ai">
+          <div class="flex flex-col gap-4">
+            <Message v-if="aiStatus && !aiStatus.configured" severity="warn" :closable="false">
+              <p class="text-sm font-medium">AI generation is not configured for this deployment.</p>
+              <p v-if="aiStatus.missing.length" class="mt-1 text-xs">Missing: {{ aiStatus.missing.join(', ') }}</p>
+              <p class="mt-1 text-xs">These settings save anyway and apply once a key is set.</p>
+            </Message>
+            <Message v-else-if="aiStatus" severity="secondary" :closable="false" size="small">
+              <span class="text-xs">Provider: {{ aiStatus.provider }} · model: {{ aiStatus.model }}</span>
+            </Message>
+
+            <Card>
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-start gap-3">
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm font-medium text-ink">Enable AI captions</p>
+                      <p class="text-xs text-ink-muted">Adds the generator to the composer.</p>
+                    </div>
+                    <ToggleSwitch v-model="ai.enabled" :disabled="!canEditWorkspace" aria-label="Enable AI captions" />
+                  </div>
+
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="flex flex-col gap-1.5">
+                      <label for="ai-default-lang" class="text-sm font-medium text-ink">Default language</label>
+                      <Select
+                        input-id="ai-default-lang"
+                        v-model="ai.defaultLanguage"
+                        :options="aiLanguageOptions"
+                        option-label="label"
+                        option-value="value"
+                        :disabled="!canEditWorkspace"
+                        fluid
+                      />
+                      <small class="text-ink-soft">Moroccan Darija is written in Arabic script.</small>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                      <label for="ai-default-tone" class="text-sm font-medium text-ink">Default tone</label>
+                      <Select
+                        input-id="ai-default-tone"
+                        v-model="ai.defaultTone"
+                        :options="aiToneOptions"
+                        option-label="label"
+                        option-value="value"
+                        :disabled="!canEditWorkspace"
+                        fluid
+                      />
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                      <ToggleSwitch v-model="ai.useEmojis" :disabled="!canEditWorkspace" aria-label="Emojis by default" /> Emojis
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                      <ToggleSwitch v-model="ai.useHashtags" :disabled="!canEditWorkspace" aria-label="Hashtags by default" /> Hashtags
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                      <ToggleSwitch v-model="ai.useCta" :disabled="!canEditWorkspace" aria-label="Call to action by default" /> CTA
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-ink">
+                      <ToggleSwitch v-model="ai.mentionLocation" :disabled="!canEditWorkspace" aria-label="Mention location by default" /> Location
+                    </label>
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-brand" class="text-sm font-medium text-ink">Brand context</label>
+                    <Textarea id="ai-brand" v-model="ai.brandContext" rows="4" auto-resize maxlength="2000" :disabled="!canEditWorkspace" fluid />
+                    <small class="text-ink-soft">What the business is and how it should sound. Steers every generation.</small>
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-location" class="text-sm font-medium text-ink">Location</label>
+                    <InputText id="ai-location" v-model="ai.defaultLocation" :disabled="!canEditWorkspace" fluid />
+                    <small class="text-ink-soft">Only used when a generation is asked to mention it.</small>
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-tags" class="text-sm font-medium text-ink">Always include these hashtags</label>
+                    <AutoComplete input-id="ai-tags" v-model="aiHashtags" multiple :typeahead="false" :suggestions="[]" placeholder="Type and press enter" :disabled="!canEditWorkspace" fluid />
+                  </div>
+
+                  <div class="flex flex-col gap-1.5">
+                    <label for="ai-claims" class="text-sm font-medium text-ink">Never claim</label>
+                    <AutoComplete input-id="ai-claims" v-model="aiClaims" multiple :typeahead="false" :suggestions="[]" placeholder="e.g. prices, awards, health benefits" :disabled="!canEditWorkspace" fluid />
+                    <small class="text-ink-soft">
+                      The generator is already told never to invent prices, promotions or locations. Add anything
+                      specific to this business.
+                    </small>
+                  </div>
+
+                  <Button
+                    label="Save AI settings"
+                    icon="pi pi-check"
+                    :loading="savingAi"
+                    :disabled="!canEditWorkspace || loadingAi"
+                    class="self-start"
+                    @click="saveAi"
+                  />
+                </div>
+              </template>
+            </Card>
+          </div>
         </TabPanel>
 
         <!-- Appearance -->

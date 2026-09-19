@@ -67,3 +67,12 @@ export {
 
 // Webhooks
 export { webhooks } from './webhooks/webhooks';
+
+export {
+  getAiStatusFn as getAiStatus,
+  generateCaptionFn as generateCaption,
+  rewriteCaptionFn as rewriteCaption,
+  adaptCaptionFn as adaptCaption,
+  markAiGenerationAcceptedFn as markAiGenerationAccepted,
+  updateAiSettingsFn as updateAiSettings,
+} from './api/ai';

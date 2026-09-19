@@ -230,6 +230,18 @@ tasks only.
 
 ---
 
+## AI captions
+
+Caption generation follows the same registry pattern as the social providers:
+`AIContentProvider` behind `AIProviderRegistry`, so the vendor is a
+registration rather than a dependency spread through the code. The model only
+ever returns text — it has no path to the publishing engine, so it cannot
+publish. Media is read server-side with the admin SDK rather than being made
+public, and video frames are extracted in the browser because Cloud Functions
+have no ffmpeg. Spend is capped per workspace and reserved before the call.
+
+Full detail in [`ai-caption-generator.md`](./ai-caption-generator.md).
+
 ## Cost
 
 The scheduler is event-driven, not polled. There is no minute-by-minute scan:
