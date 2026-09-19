@@ -50,7 +50,7 @@ watch(status, (s) => {
   void router.replace({ query: s ? { status: s } : {} });
 });
 
-const { items, loading, done, error, loadMore, reset } = usePagedQuery<Post>(
+const { items, loading, done, error, loadMore, reset, removeLocal } = usePagedQuery<Post>(
   () => {
     if (!ws.workspaceId) return null;
     const base = collection(db, `workspaces/${ws.workspaceId}/posts`);
@@ -86,7 +86,7 @@ function titleOf(p: Post): string {
 }
 
 function menuFor(p: Post): MenuItem[] {
-  return actions.menuItems(p, () => reset());
+  return actions.menuItems(p, (result) => (result?.removedId ? removeLocal(result.removedId) : reset()));
 }
 
 // One popup Menu is reused by every table row.

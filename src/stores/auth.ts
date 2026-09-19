@@ -37,6 +37,11 @@ export const useAuthStore = defineStore('auth', () => {
       memberships.value = res.memberships;
       canCreateWorkspace.value = res.canCreateWorkspace;
       emailVerified.value = res.emailVerified;
+
+      // bootstrapUser refreshes the workspace membership claim that the
+      // Storage rules read. Claims only reach the client on a new token, so
+      // force one rather than waiting up to an hour for the automatic refresh.
+      await auth.currentUser?.getIdToken(true).catch(() => undefined);
     } catch (e) {
       bootstrapError.value = (e as Error).message;
     }

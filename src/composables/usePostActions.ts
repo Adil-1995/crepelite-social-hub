@@ -159,10 +159,16 @@ export function usePostActions() {
     }
   }
 
-  /** Menu entries for a post, filtered by role and current status. */
-  function menuItems(post: Post, onDone: () => void = () => {}): MenuItem[] {
-    const run = (fn: () => Promise<boolean>) => async () => {
-      if (await fn()) onDone();
+  /**
+   * Menu entries for a post, filtered by role and current status.
+   *
+   * `onDone` reports the deleted id when the action removed the post, so the
+   * caller can drop the row locally — re-querying is not enough, because
+   * Firestore's cache can still answer with a document a callable deleted.
+   */
+  function menuItems(post: Post, onDone: (result?: { removedId?: string }) => void = () => {}): MenuItem[] {
+    const run = (fn: () => Promise<boolean>, removedId?: string) => async () => {
+      if (await fn()) onDone(removedId ? { removedId } : undefined);
     };
     const editable = post.status !== 'published' && post.status !== 'publishing';
 
@@ -183,7 +189,7 @@ export function usePostActions() {
       items.push({ label: 'Cancel schedule', icon: 'pi pi-ban', command: run(() => cancel(post)) });
     }
     if (canWrite()) {
-      items.push({ separator: true }, { label: 'Delete', icon: 'pi pi-trash', command: run(() => remove(post)) });
+      items.push({ separator: true }, { label: 'Delete', icon: 'pi pi-trash', command: run(() => remove(post), post.id) });
     }
     return items;
   }

@@ -20,6 +20,7 @@ import { callable } from './callable';
 import { FieldValue, Timestamp, db, paths } from '../utils/firestore';
 import { fail } from '../utils/errors';
 import { audit, userActor } from '../services/audit';
+import { syncWorkspaceClaims, syncWorkspaceClaimsFor } from '../services/claims';
 import { env } from '../config/env';
 
 const INVITE_TTL_MS = 14 * 24 * 3600 * 1000;
@@ -82,6 +83,11 @@ export const bootstrapUserFn = callable(z.object({}).default({}), async (_data, 
       accepted.push(workspaceId);
     }
   }
+  // Storage rules read this claim instead of doing a cross-service Firestore
+  // lookup on every upload. Refreshed here so an existing user picks it up on
+  // their next sign-in without any migration.
+  await syncWorkspaceClaims(uid);
+
   const memberships = await db().collection(`users/${uid}/memberships`).get();
   return {
     acceptedInvitations: accepted,
@@ -102,6 +108,7 @@ export const createWorkspaceFn = callable(workspaceCreateSchema, async (data, re
     tx.set(db().doc(paths.user(uid)), { defaultWorkspaceId: ref.id }, { merge: true });
     await audit({ workspaceId: ref.id, actor: userActor(uid, email), action: 'workspace.created', entityType: 'workspace', entityId: ref.id, metadata: { name: data.name, timezone: data.timezone } }, tx);
   });
+  await syncWorkspaceClaims(uid);
   return { workspaceId: ref.id };
 });
 
@@ -150,6 +157,7 @@ export const updateMemberRoleFn = callable(updateMemberSchema, async (data, req)
     tx.set(db().doc(`users/${data.uid}/memberships/${data.workspaceId}`), { role: data.role, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     await audit({ workspaceId: data.workspaceId, actor: userActor(actor.uid, actor.email), action: 'member.role_changed', entityType: 'member', entityId: data.uid, metadata: { from: current, to: data.role } }, tx);
   });
+  await syncWorkspaceClaims(data.uid);
   return { ok: true };
 });
 
@@ -168,6 +176,7 @@ export const removeMemberFn = callable(removeMemberSchema, async (data, req) => 
     tx.delete(db().doc(`users/${data.uid}/memberships/${data.workspaceId}`));
     await audit({ workspaceId: data.workspaceId, actor: userActor(actor.uid, actor.email), action: 'member.removed', entityType: 'member', entityId: data.uid, metadata: { role: current } }, tx);
   });
+  await syncWorkspaceClaims(data.uid);
   return { ok: true };
 });
 
@@ -184,6 +193,7 @@ export const transferOwnershipFn = callable(z.object({ workspaceId: zId, uid: zI
     tx.update(db().doc(paths.workspace(data.workspaceId)), { ownerId: data.uid, updatedAt: FieldValue.serverTimestamp() });
     await audit({ workspaceId: data.workspaceId, actor: userActor(actor.uid, actor.email), action: 'workspace.ownership_transferred', entityType: 'workspace', entityId: data.workspaceId, metadata: { to: data.uid } }, tx);
   });
+  await syncWorkspaceClaimsFor([data.uid, actor.uid]);
   return { ok: true };
 });
 

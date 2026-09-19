@@ -46,7 +46,7 @@ const kindOptions = [
 
 const canWrite = computed(() => ws.can('media.write'));
 
-const { items, loading, done, error, loadMore, reset } = usePagedQuery<MediaAsset>(
+const { items, loading, done, error, loadMore, reset, removeLocal } = usePagedQuery<MediaAsset>(
   () => {
     if (!ws.workspaceId) return null;
     const base = collection(db, `workspaces/${ws.workspaceId}/mediaAssets`);
@@ -98,7 +98,9 @@ async function remove(id: string) {
   try {
     await api.deleteMedia({ workspaceId: ws.workspaceId, mediaId: id });
     success('File deleted');
-    reset();
+    // Drop it locally: a re-query can still be answered from the Firestore
+    // cache, which knows nothing about a server-side delete.
+    removeLocal(id);
   } catch (e) {
     reportApiError(e, 'Could not delete the file');
   }

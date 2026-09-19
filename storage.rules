@@ -15,16 +15,40 @@ service firebase.storage {
       return /databases/(default)/documents/workspaces/$(w)/members/$(request.auth.uid);
     }
 
+    // Primary check: workspace membership carried in the ID token, kept in
+    // sync by services/claims.ts. No Firestore read, and no dependency on the
+    // cross-service IAM grant — which, when missing, denies every upload with
+    // an error that names nothing useful.
+    function claimWorkspaces() {
+      return request.auth != null && 'wsw' in request.auth.token
+        ? request.auth.token.wsw
+        : [];
+    }
+
+    function claimAllows(w) {
+      return w in claimWorkspaces();
+    }
+
+    // Fallback for tokens issued before the claim existed. Evaluated only when
+    // the claim is absent or stale, so this is never more permissive.
     function isMember(w) {
       return request.auth != null && firestore.exists(memberPath(w));
     }
 
-    function canWrite(w) {
+    function firestoreAllowsWrite(w) {
       return isMember(w) && firestore.get(memberPath(w)).data.role in ['OWNER', 'ADMIN', 'EDITOR'];
     }
 
+    function canWrite(w) {
+      return claimAllows(w) || firestoreAllowsWrite(w);
+    }
+
+    function canRead(w) {
+      return claimAllows(w) || isMember(w);
+    }
+
     match /workspaces/{w}/media/{mediaId}/{fileName} {
-      allow read: if isMember(w);
+      allow read: if canRead(w);
 
       allow create: if canWrite(w)
         && mediaId.matches('^[A-Za-z0-9_-]{8,64}$')

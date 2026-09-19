@@ -123,6 +123,18 @@ export function usePagedQuery<T>(baseFactory: () => { base: Query<DocumentData>;
     void loadMore();
   }
 
+  /**
+   * Drops a row locally after the server deleted it.
+   *
+   * `getDocs` can be answered from Firestore's persistent cache, and a delete
+   * performed by a callable never reaches that cache — so re-running the query
+   * happily returns the document that no longer exists. Removing it here keeps
+   * the list honest instead of showing a ghost until the cache expires.
+   */
+  function removeLocal(id: string) {
+    items.value = items.value.filter((i) => i.id !== id);
+  }
+
   watch(deps, reset, { immediate: true });
-  return { items, loading, done, error, loadMore, reset };
+  return { items, loading, done, error, loadMore, reset, removeLocal };
 }
