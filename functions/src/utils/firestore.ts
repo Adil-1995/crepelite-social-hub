@@ -22,7 +22,7 @@ export const now = (): Timestamp => Timestamp.now();
 export const tsFromMs = (ms: number): Timestamp => Timestamp.fromMillis(ms);
 export const tsFromIso = (iso: string): Timestamp => Timestamp.fromDate(new Date(iso));
 
-/** Canonical Firestore paths. Keep in sync with firestore.rules and docs/data-model.md. */
+/** Canonical Firestore paths. Keep in sync with firestore.rules and docs/DATABASE.md. */
 export const paths = {
   user: (uid: string) => `users/${uid}`,
   userDevices: (uid: string) => `users/${uid}/devices`,

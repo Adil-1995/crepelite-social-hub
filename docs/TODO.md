@@ -1,112 +1,158 @@
 # CrepeLite Social Hub — Technical TODO
 
-Status legend: `[x]` done · `[~]` implemented, needs external credentials/approval to verify live · `[ ]` pending
+Status legend:
+`[x]` built **and** tested · `[~]` code exists, live verification blocked by an
+external credential or approval · `[ ]` not done
 
 > **UI rule:** PrimeVue v4 is the official component library — see
-> [`docs/ui-architecture.md`](./ui-architecture.md). Never rebuild a generic UI
-> primitive that PrimeVue already provides.
+> [`ui-architecture.md`](./ui-architecture.md). Never rebuild a generic UI
+> primitive PrimeVue already provides.
 
-> **Accuracy note (2026-09-19):** the phase marks below describe the *plan*.
-> `shared/`, `functions/` and `worker/` match it. The **web app does not yet**:
-> `src/` currently holds the bootstrap only (firebase, stores, router, api
-> service, theme, `main.ts`, `App.vue`, a minimal `sw.ts`). No
-> `src/features/**` views, no `src/components/**`, and no test files exist yet.
-> Treat every UI-facing `[x]` in phases 1–10 as *designed, not built*.
-> `npm run build:web` therefore fails on the 20 views the router imports.
+Last verified: 2026-09-19 — `typecheck`, `lint`, `test` (148 unit tests) and
+`build` (web + functions + worker) all pass.
 
-## Phase 0 — Repository inspection
-- [x] Repository was empty (no previous code, no git). Initialised a new git repo.
-- [x] Toolchain: Node 24, npm 11, firebase-tools 15. Java is required by the Firestore/Storage emulators (JDK 21+).
-- [x] Stack decision: npm workspaces monorepo — web app at the root, `shared/`, `functions/`, `worker/`.
-- [x] TypeScript pinned to 6.0.x (TS 7 native is not yet supported by typescript-eslint).
+---
+
+## Phase 0 — Repository
+
+- [x] npm workspaces monorepo: web app at the root, `shared/`, `functions/`, `worker/`
+- [x] TypeScript 6.0.x (TS 7 native is not yet supported by typescript-eslint)
+- [x] `.gitignore`, `.gitattributes`, initial commit
+- [x] `eslint.config.js` (flat config)
+- [x] `vitest.config.ts` with five projects
+- [ ] GitHub remote — **blocked: `gh auth login` needs a human**
 
 ## Phase 1 — Core foundation
+
 - [x] Vue 3 + Vite + TS + Pinia + Vue Router + Tailwind v4, PWA via vite-plugin-pwa
-- [x] Firebase Web SDK (Auth email/password + Google, Firestore with offline cache, Storage, Functions, Messaging)
-- [x] Workspaces + members + roles (OWNER/ADMIN/EDITOR/VIEWER), invitations
-- [x] Mobile layout (bottom nav with centred Create, safe areas) → desktop sidebar
-- [~] Design system → **superseded by PrimeVue** (see Phase 1.1). No custom generic primitives were ever written, so there is nothing to migrate away from.
-- [x] Firestore + Storage rules and rules tests
+- [x] Firebase Web SDK (Auth, Firestore with offline cache, Storage, Functions, Messaging)
+- [x] Workspaces, members, roles (OWNER/ADMIN/EDITOR/VIEWER), invitations
+- [x] Mobile bottom navigation with centred Create → desktop sidebar
+- [x] Firestore and Storage rules
+- [~] Rules tests written (`tests/rules/`) — **cannot run: the emulators need a JDK**
 
-## Phase 1.1 — PrimeVue adoption
+## Phase 1.1 — PrimeVue
 
-Groundwork (done — the library is installed, themed and wired):
-
-- [x] Install PrimeVue v4 (`primevue@4.5.5`, latest 4.x) + `@primeuix/themes@2`.
-- [x] Install PrimeIcons (`primeicons@7`).
-- [x] Install/configure the official Tailwind v4 integration (`tailwindcss-primeui` via `@plugin`, CSS layer order `theme, base, primevue`).
-- [x] Centralized CrepeLite theme: `src/theme/tokens.ts`, `src/theme/crepelite-theme.ts`, `src/theme/primevue.ts`.
-- [x] Class-driven dark mode (`.dark`) shared by PrimeVue `darkModeSelector` and Tailwind `dark:`, with an anti-FOUC script in `index.html`.
-- [x] Global ToastService, ConfirmationService, DialogService; `v-tooltip` and `v-focustrap` directives.
-- [x] Service outlets mounted once in `App.vue` (`Toast`, `ConfirmDialog`, `DynamicDialog`).
-- [x] `useFeedback()` composable — the single entry point for toasts, API error reporting and destructive confirmations.
-- [x] Removed the hand-rolled toast/confirm engine from `src/stores/ui.ts` (it duplicated PrimeVue; nothing consumed it yet).
-- [x] Auto-import with tree-shaking (`unplugin-vue-components` + `@primevue/auto-import-resolver`, types in `src/components.d.ts`); `primevue` build chunk.
-- [x] Audit existing design-system components — result: none existed, so there is nothing to replace or delete.
-
-Application work (pending — these land as each feature is built):
-
-- [ ] Forms on PrimeVue: login, composer, bulk planner, connections, settings.
-- [ ] Dialogs/confirmations on `Dialog` / `ConfirmDialog` everywhere (no `alert`/`confirm`/`prompt`).
-- [ ] Notifications on `Toast` (transient) and `Message` (persistent inline).
-- [ ] `DeliveryStatusTag.vue` — domain states → `Tag` severity/icon, used globally.
-- [ ] `SocialNetworkSelector.vue` — driven by the provider catalog, never hardcoded platforms.
-- [ ] Administrative lists on `DataTable` (posts, deliveries, import jobs, bulk jobs, audit logs, team members) with responsive card/list fallbacks on phones.
-- [ ] Composer on `Stepper`/`Tabs` (Media → Content → Platforms → Customize → Schedule → Review).
-- [ ] Bulk planner on `DatePicker`/`Select`/`MultiSelect`/`InputNumber`/`DataTable`; calendar preview stays a domain component with PrimeVue controls.
-- [ ] Connections UI on `Card`/`Tag`/`Menu`/`Dialog`.
-- [ ] Media UX: Firebase resumable uploads kept, wrapped in PrimeVue `Button`/`ProgressBar`/`Message`/`Image`.
-- [ ] Loading states on `Skeleton`/`ProgressBar`/`ProgressSpinner`.
-- [ ] Validate mobile responsiveness at 375 / 390 / 430px, then tablet and desktop.
-- [ ] Validate accessibility (keyboard, focus trapping, ARIA, labels).
-- [ ] Run lint, typecheck, tests and a production build.
-
-Verified so far: `npm run typecheck` passes across every project, `npm run lint`
-passes (0 errors), and an isolated build confirms the Tailwind↔PrimeVue
-integration — `tailwindcss-primeui` utilities resolve to PrimeVue tokens and the
-cascade layer order is `properties, theme, base, components, primevue,
-utilities`, so Tailwind utilities override PrimeVue component styles.
-A full `npm run build:web` still fails on the missing feature views.
-
-Picked up along the way (needed to run the checks above):
-
-- [x] `eslint.config.js` — flat config was missing entirely, so `npm run lint` could not run.
-- [x] `src/sw.ts` — minimal dependency-free app-shell precache; the PWA build had no entry. Runtime caching strategies remain Phase 10 work.
-
-Mark this phase `[x]` only when the application work above is actually done.
+- [x] PrimeVue 4.5.5, `@primeuix/themes` 2, PrimeIcons 7, `tailwindcss-primeui`
+- [x] Centralised theme (`src/theme/tokens.ts`, `crepelite-theme.ts`, `primevue.ts`)
+- [x] Cascade layer order `properties, theme, base, components, primevue, utilities`
+      so Tailwind utilities win over PrimeVue component styles
+- [x] Class-driven dark mode shared by PrimeVue and Tailwind, with anti-FOUC script
+- [x] Global ToastService, ConfirmationService, DialogService, tooltip, focus trap
+- [x] `useFeedback()` as the single entry point for toasts, API errors and confirmations
+- [x] Auto-import with tree-shaking; no forced PrimeVue chunk
+- [x] Every screen built on PrimeVue; no custom generic primitives exist
 
 ## Phase 2 — Content system
-- [x] Master post + per-platform variants (linked/custom sync)
-- [x] Media library (resumable uploads, progress, cancel, usage tracking)
-- [x] Composer stepper (Media → Content → Platforms → Customize → Schedule → Review)
-- [x] Drafts (server + offline local drafts)
+
+- [x] Master post + per-platform variants (master/custom sync)
+- [x] Media library: resumable uploads, progress, cancel, in-use protection
+- [x] Composer stepper: Media → Content → Platforms → Customise → Schedule → Review
+- [x] Offline drafts in IndexedDB, restored on reopen
+- [x] Shared validation drives the composer, so client and server cannot disagree
 
 ## Phase 3 — Scheduler
+
 - [x] Deliveries, state machine, aggregated post status
-- [x] Cloud Tasks dispatcher (per-delivery named tasks), 30-day two-layer strategy
+- [x] Cloud Tasks dispatcher, 30-day two-layer strategy
 - [x] schedule / reschedule / cancel / publish now / retry
-- [x] Idempotent execution (transaction + scheduleVersion + lease)
-- [x] Reconciliation + processing status checks
-- [x] MockProvider (dev/test only)
+- [x] Idempotency: scheduleVersion + transaction + lease + checkpoints
+- [x] Reconciliation and processing status checks
+- [x] MockProvider (development only)
+- [~] End-to-end idempotency tests — **written against the emulator, blocked on the JDK**
 
 ## Phase 4–7 — Providers
-- [~] Facebook Pages, Instagram (Meta Graph API)
-- [~] TikTok Content Posting API
-- [~] Pinterest API v5
-- [~] YouTube Data API v3
+
+All five are implemented against their current official APIs. None can be
+verified live without credentials and approval — see
+[`provider-approval-checklist.md`](./provider-approval-checklist.md).
+
+- [~] Facebook Pages — App Review needed
+- [~] Instagram — App Review needed
+- [~] TikTok — Content Posting audit needed (posts stay private until it passes)
+- [~] Pinterest — credentials needed
+- [~] YouTube — OAuth verification needed
 
 ## Phase 8 — Bulk planner
-- [x] Planner algorithm (dates, frequency, weekdays, times, distribution, per-platform offsets)
-- [x] Preview calendar → confirm → server-side creation
+
+- [x] Planner algorithm (dates, frequency, weekdays, times, distribution, offsets)
+- [x] Seeded preview the server reproduces exactly
+- [x] Preview → confirm → server-side creation
 
 ## Phase 9 — Import / crosspost
-- [x] Import jobs through provider `listPosts` (official APIs only)
-- [x] Media copy when permitted; "upload original manually" flag otherwise
 
-## Phase 10 — PWA polish
-- [x] Offline app shell + offline drafts
-- [x] Push notifications (FCM) with preferences
-- [x] Install UX
+- [x] Import through provider `listPosts` (official APIs only, never scraping)
+- [x] "Upload original manually" flag where the API forbids media retrieval
 
-## Open items that need external input
-See `docs/provider-approval-checklist.md` and `docs/deployment.md`.
+## Phase 10 — PWA
+
+- [x] Offline app shell, offline drafts
+- [x] Install affordance, standalone detection, update prompt
+- [x] Icons, manifest, theme colour, safe areas
+- [~] Push notifications (FCM) — code and preferences UI done; **needs a VAPID key**
+- [ ] Verified on a real device at 375 / 390 / 430px
+
+## Phase 11 — Screens
+
+- [x] Sign in / sign up / password reset, Google sign-in
+- [x] Onboarding (workspace creation)
+- [x] Dashboard, Calendar (month/week/agenda), Posts, Post detail
+- [x] Composer, Bulk planner, Import, Media
+- [x] Connections, Connection detail
+- [x] Notifications, Activity log, Settings, Team, More
+- [x] Every screen has loading, empty and error states
+
+## Phase 12 — Tests
+
+- [x] 148 unit tests across shared, functions and web
+- [x] State machine, bulk planner, roles, queue window, provider catalog,
+      validation, error classification, registry, formatting, status maps
+- [~] Firestore rules tests — written, **blocked on the JDK**
+- [~] Storage rules tests — written, **blocked on the JDK**
+- [ ] Integration tests against the emulator (callables, idempotency, partial
+      publication, bulk creation)
+
+## Phase 13 — Documentation
+
+- [x] `README.md`
+- [x] `ARCHITECTURE.md` with Mermaid diagrams
+- [x] `DATABASE.md` — every collection, field, index and id strategy
+- [x] `deployment.md`
+- [x] `provider-approval-checklist.md`
+- [x] `providers/*.md` for all five networks
+- [x] `adding-provider.md`
+- [x] `ui-architecture.md`
+
+## Phase 14 — Infrastructure
+
+- [x] Firebase project `creplite` identified; aliases configured
+- [x] `.env` / `.env.example`
+- [x] Emulator configuration in `firebase.json`
+- [x] Seed script, guarded against ever touching a real project
+- [ ] Blaze billing — **needs a human with a billing account**
+- [ ] Google Cloud APIs enabled — **needs `gcloud`, which is not installed**
+- [ ] Secrets in Secret Manager — **needs the provider credentials**
+- [ ] Deployed — blocked on billing
+- [ ] Budget alerts — **billing-account permission, cannot be done from the CLI**
+
+---
+
+## Blocked on a human
+
+These are the only things stopping the rest. Each needs an account, a payment
+method, an approval or an elevated install that cannot be automated.
+
+| # | Blocker | Unblocks |
+| --- | --- | --- |
+| 1 | Install a JDK 21+ (needs UAC elevation) | Emulators, rules tests, integration tests, seeding |
+| 2 | Enable Blaze billing on `creplite` | Functions, Tasks, Scheduler, Cloud Run, deployment |
+| 3 | `gh auth login` | GitHub remote |
+| 4 | Install `gcloud` | API enablement, queue creation, budget alerts |
+| 5 | Meta App Review | Live Facebook and Instagram publishing |
+| 6 | TikTok Content Posting audit | Public TikTok posts |
+| 7 | Pinterest standard access | Live Pinterest publishing |
+| 8 | Google OAuth verification | YouTube beyond 100 test users |
+| 9 | FCM VAPID key | Push notifications |
+
+Everything not in that table is either done or genuinely not started, and is
+marked accordingly above.

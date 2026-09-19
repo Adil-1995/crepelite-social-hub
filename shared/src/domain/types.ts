@@ -1,6 +1,6 @@
 /**
  * Domain model shared by the PWA, Cloud Functions and the publisher worker.
- * Firestore layout is documented in docs/data-model.md.
+ * Firestore layout is documented in docs/DATABASE.md.
  */
 
 /** Structural type satisfied by both firebase/firestore and firebase-admin Timestamps. */

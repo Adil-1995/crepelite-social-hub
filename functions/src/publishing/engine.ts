@@ -34,7 +34,7 @@ import { notify } from '../services/notifications';
 /**
  * Publishing engine — executes one delivery exactly once.
  *
- * Guarantees (see docs/architecture.md §Idempotency):
+ * Guarantees (see docs/ARCHITECTURE.md §Idempotency):
  * 1. Claim in a Firestore transaction: the task's scheduleVersion must equal the
  *    delivery's, the status must be `queued`, and no live lease may exist.
  *    Stale / duplicate / cancelled tasks are ignored.
