@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#B4562A" />
+    <meta name="description" content="Plan, schedule and publish CrepeLite content to every social network." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CrepeLite Social" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <title>CrepeLite Social Hub</title>
+    <script>
+      // Apply the dark class before first paint so PrimeVue's darkModeSelector
+      // and Tailwind's dark: variant never flash the wrong theme.
+      (function () {
+        try {
+          var m = localStorage.getItem('crepelite:theme') || 'system';
+          var dark = m === 'dark' || (m === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>CrepeLite Social Hub needs JavaScript enabled.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// CrepeLite Social Hub — Storage rules
+// Layout: workspaces/{workspaceId}/media/{mediaId}/original.{ext} (+ thumbnail.jpg)
+// - Members can read their workspace media.
+// - OWNER/ADMIN/EDITOR can create (never overwrite or delete) originals and thumbnails.
+//   The MediaAsset document is created server-side by `registerMedia`, which
+//   re-checks size and content type against the stored object.
+// - Deletion is server-only (`deleteMedia` refuses media still used by posts).
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function memberPath(w) {
+      return /databases/(default)/documents/workspaces/$(w)/members/$(request.auth.uid);
+    }
+
+    function isMember(w) {
+      return request.auth != null && firestore.exists(memberPath(w));
+    }
+
+    function canWrite(w) {
+      return isMember(w) && firestore.get(memberPath(w)).data.role in ['OWNER', 'ADMIN', 'EDITOR'];
+    }
+
+    match /workspaces/{w}/media/{mediaId}/{fileName} {
+      allow read: if isMember(w);
+
+      allow create: if canWrite(w)
+        && mediaId.matches('^[A-Za-z0-9_-]{8,64}$')
+        && (
+          (fileName.matches('^original\\.[a-z0-9]{1,8}$')
+            && request.resource.size > 0
+            && request.resource.size <= 4 * 1024 * 1024 * 1024
+            && request.resource.contentType.matches('^(image|video)/[A-Za-z0-9.+-]+$'))
+          ||
+          (fileName == 'thumbnail.jpg'
+            && request.resource.size <= 2 * 1024 * 1024
+            && request.resource.contentType == 'image/jpeg')
+        );
+
+      allow update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

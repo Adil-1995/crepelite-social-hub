@@ -1,0 +1,133 @@
+rules_version = '2';
+
+// CrepeLite Social Hub — Firestore security rules
+//
+// Principles
+// - Clients can only READ data of workspaces they are members of.
+// - Every write goes through Cloud Functions (callables) which re-validate the
+//   payload and the caller's role. Clients can never write statuses,
+//   externalPostId, taskName, tokens, memberships or audit logs.
+// - Server-only collections (tokenVault, oauthStates, webhookEvents, importMedia)
+//   are closed to every client, including owners.
+// Tests: tests/rules/firestore.rules.test.ts
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberDoc(w) {
+      return /databases/$(database)/documents/workspaces/$(w)/members/$(request.auth.uid);
+    }
+
+    function isMember(w) {
+      return signedIn() && exists(memberDoc(w));
+    }
+
+    function roleIn(w, roles) {
+      return isMember(w) && get(memberDoc(w)).data.role in roles;
+    }
+
+    // ---------------------------------------------------------------- users
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+
+      match /memberships/{workspaceId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+      match /devices/{deviceId} {
+        allow read, write: if false;
+      }
+    }
+
+    // ----------------------------------------------------------- workspaces
+    match /workspaces/{w} {
+      allow read: if isMember(w);
+      allow write: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /invitations/{inviteId} {
+        allow read: if roleIn(w, ['OWNER', 'ADMIN']);
+        allow write: if false;
+      }
+
+      // Public connection metadata only — tokens live in /tokenVault.
+      match /socialConnections/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /socialChannels/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /posts/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /postVariants/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /deliveries/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /mediaAssets/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /bulkJobs/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /importJobs/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /auditLogs/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+
+      match /notifications/{id} {
+        allow read: if isMember(w);
+        allow write: if false;
+      }
+    }
+
+    // ------------------------------------------------- server-only (no client)
+    match /tokenVault/{id} {
+      allow read, write: if false;
+    }
+    match /oauthStates/{id} {
+      allow read, write: if false;
+    }
+    match /webhookEvents/{id} {
+      allow read, write: if false;
+    }
+    match /importMedia/{id} {
+      allow read, write: if false;
+    }
+
+    // Everything else is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

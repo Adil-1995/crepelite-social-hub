@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "demo-crepelite",
+    "development": "demo-crepelite",
+    "staging": "crepelite-social-staging",
+    "production": "crepelite-social-prod"
+  }
+}
