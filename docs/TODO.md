@@ -90,7 +90,10 @@ verified live without credentials and approval — see
 - [x] Install affordance, standalone detection, update prompt
 - [x] Icons, manifest, theme colour, safe areas
 - [~] Push notifications (FCM) — code and preferences UI done; **needs a VAPID key**
-- [ ] Verified on a real device at 375 / 390 / 430px
+- [x] Live accessibility and layout audit across 8 screens: zero unlabelled
+      inputs, zero unnamed buttons, zero horizontal overflow, one h1 per page
+- [ ] Verified by eye on a real handset (the extension cannot resize the
+      viewport, so the breakpoints themselves are unproven)
 
 ## Phase 11 — Screens
 
@@ -109,8 +112,14 @@ verified live without credentials and approval — see
       validation, error classification, registry, formatting, status maps
 - [~] Firestore rules tests — written, **blocked on the JDK**
 - [~] Storage rules tests — written, **blocked on the JDK**
-- [ ] Integration tests against the emulator (callables, idempotency, partial
-      publication, bulk creation)
+- [~] Integration tests written and typechecked, **blocked on the JDK**:
+      duplicate task delivery, concurrent execution, stale scheduleVersion,
+      cancelled delivery, partial publication, retrying one destination without
+      republishing the others, error classification, async checkpointing,
+      and the 30-posts-across-October bulk scenario
+- [x] Tests are now inside a tsconfig (`tsconfig.tests.json`) and typechecked
+      by `npm run typecheck` — they were outside every project before, which
+      had already let three type errors through in the shared suite
 
 ## Phase 13 — Documentation
 

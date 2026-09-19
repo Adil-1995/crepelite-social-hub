@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node", "vitest/globals"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["./shared/src/*"],
+      "@shared/index": ["./shared/src/index.ts"]
+    }
+  },
+  "include": ["tests/integration/**/*.ts", "tests/rules/**/*.ts", "tests/shared/**/*.ts", "tests/functions/**/*.ts"]
+}

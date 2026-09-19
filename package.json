@@ -20,7 +20,7 @@
     "build:functions": "npm --workspace functions run build",
     "build:worker": "npm --workspace worker run build",
     "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.sw.json && tsc --noEmit -p shared && tsc --noEmit -p functions && tsc --noEmit -p worker && tsc --noEmit -p tsconfig.node.json",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.sw.json && tsc --noEmit -p shared && tsc --noEmit -p functions && tsc --noEmit -p worker && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.tests.json",
     "icons": "node scripts/generate-icons.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

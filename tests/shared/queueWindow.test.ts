@@ -71,16 +71,16 @@ describe('task identifiers', () => {
 
 describe('effectiveDeliveryTime', () => {
   it('returns null for an unscheduled post', () => {
-    expect(effectiveDeliveryTime(null, { offsetMinutes: 0, scheduledAtOverrideMs: null })).toBeNull();
+    expect(effectiveDeliveryTime(null, { channelId: 'ch-a', offsetMinutes: 0, scheduledAtOverrideMs: null })).toBeNull();
   });
 
   it('adds the per-variant offset', () => {
-    expect(effectiveDeliveryTime(NOW, { offsetMinutes: 30, scheduledAtOverrideMs: null })).toBe(NOW + 30 * 60_000);
+    expect(effectiveDeliveryTime(NOW, { channelId: 'ch-a', offsetMinutes: 30, scheduledAtOverrideMs: null })).toBe(NOW + 30 * 60_000);
   });
 
   it('lets an absolute override win over the offset', () => {
     const override = NOW + 5 * DAY;
-    expect(effectiveDeliveryTime(NOW, { offsetMinutes: 30, scheduledAtOverrideMs: override })).toBe(override);
+    expect(effectiveDeliveryTime(NOW, { channelId: 'ch-a', offsetMinutes: 30, scheduledAtOverrideMs: override })).toBe(override);
   });
 
   it('caps the offset at one week', () => {
