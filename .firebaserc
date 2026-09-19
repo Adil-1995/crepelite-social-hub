@@ -1,8 +1,9 @@
 {
   "projects": {
-    "default": "demo-crepelite",
-    "development": "demo-crepelite",
-    "staging": "crepelite-social-staging",
-    "production": "crepelite-social-prod"
-  }
+    "default": "creplite",
+    "production": "creplite",
+    "development": "demo-crepelite"
+  },
+  "targets": {},
+  "etags": {}
 }
