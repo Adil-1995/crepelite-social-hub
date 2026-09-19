@@ -5,6 +5,7 @@ import type { ResolvedMedia } from '../providers/types';
 import { APP_SIGNING_KEY, config, isEmulator, secretValue } from '../config/env';
 import { db, paths } from '../utils/firestore';
 import { ProviderError } from '../providers/errors';
+import { log } from '../utils/logger';
 
 export function bucket() {
   const name = config.mediaBucket();
@@ -39,19 +40,57 @@ export function verifyPullSignature(workspaceId: string, mediaId: string, exp: s
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
+/**
+ * A V4 signed URL needs a private key. The Cloud Functions runtime has none,
+ * so the SDK signs through the IAM `signBlob` API — which fails unless the
+ * runtime service account may impersonate itself. That grant is easy to miss,
+ * and when it is missing every publish dies with an IAM error that says
+ * nothing about media.
+ *
+ * `signPullUrl` is the escape hatch: an HMAC-signed, expiring URL served by
+ * our own `mediaPull` function, with no IAM involvement at all.
+ */
+function isSigningUnavailable(e: unknown): boolean {
+  const msg = (e as Error)?.message ?? '';
+  return /signBlob|iam.serviceAccounts|Permission.*denied|could not (be )?sign/i.test(msg);
+}
+
 export function resolveMedia(asset: MediaAsset): ResolvedMedia {
   const file = bucket().file(asset.storagePath);
+  const expires = () => Date.now() + 2 * 3600 * 1000;
+
   return {
     asset,
     async getPublicUrl(opts) {
+      // Providers that require a verified domain must use our own domain.
       if (opts?.verifiedDomain) return signPullUrl(asset.workspaceId, asset.id);
-      const [url] = await file.getSignedUrl({ version: 'v4', action: 'read', expires: Date.now() + 2 * 3600 * 1000 });
-      return url;
+      try {
+        const [url] = await file.getSignedUrl({ version: 'v4', action: 'read', expires: expires() });
+        return url;
+      } catch (e) {
+        if (!isSigningUnavailable(e)) throw e;
+        // Serving through mediaPull costs a function invocation per fetch, so
+        // this is the fallback rather than the default. Grant the runtime
+        // service account roles/iam.serviceAccountTokenCreator to restore the
+        // cheaper direct path — see docs/deployment.md.
+        log.warn('signed URL unavailable, serving media through mediaPull', {
+          mediaId: asset.id,
+          reason: (e as Error).message,
+        });
+        return signPullUrl(asset.workspaceId, asset.id);
+      }
     },
     async getThumbnailUrl() {
       if (!asset.thumbnailPath) return null;
-      const [url] = await bucket().file(asset.thumbnailPath).getSignedUrl({ version: 'v4', action: 'read', expires: Date.now() + 2 * 3600 * 1000 });
-      return url;
+      try {
+        const [url] = await bucket().file(asset.thumbnailPath).getSignedUrl({ version: 'v4', action: 'read', expires: expires() });
+        return url;
+      } catch (e) {
+        if (!isSigningUnavailable(e)) throw e;
+        // Thumbnails are decorative; losing one must not fail a publish.
+        log.warn('thumbnail URL unavailable', { mediaId: asset.id, reason: (e as Error).message });
+        return null;
+      }
     },
     openStream(range) {
       return file.createReadStream(range ? { start: range.start, end: range.end } : undefined);

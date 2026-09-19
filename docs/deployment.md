@@ -116,6 +116,26 @@ ENABLE_MOCK_PROVIDER=false
 `ENABLE_MOCK_PROVIDER=false` is important: the mock provider must never be
 reachable in production.
 
+## 3b. Two IAM grants worth making
+
+Neither is required — the code works without both — but each restores a
+cheaper or simpler path, and the errors they cause are opaque enough to be
+worth knowing about.
+
+| Grant | Without it | Symptom |
+| --- | --- | --- |
+| `roles/iam.serviceAccountTokenCreator` on the functions runtime service account, granted to itself | Media is served to providers through the `mediaPull` function instead of a direct signed GCS URL — one function invocation and egress per fetch | `Permission 'iam.serviceAccounts.signBlob' denied` during publishing |
+| `roles/firebaserules.firestoreServiceAgent` on `service-<project-number>@gcp-sa-firebaserules.iam.gserviceaccount.com` | Storage rules cannot read Firestore, so only the token claim authorises uploads | Uploads denied for a user whose token predates the claim |
+
+```bash
+PROJECT=crepelite-social-hub
+NUMBER=733722881127
+
+gcloud iam service-accounts add-iam-policy-binding   "${NUMBER}-compute@developer.gserviceaccount.com"   --member="serviceAccount:${NUMBER}-compute@developer.gserviceaccount.com"   --role=roles/iam.serviceAccountTokenCreator --project="$PROJECT"
+
+gcloud projects add-iam-policy-binding "$PROJECT"   --member="serviceAccount:service-${NUMBER}@gcp-sa-firebaserules.iam.gserviceaccount.com"   --role=roles/firebaserules.firestoreServiceAgent
+```
+
 ## 4. OAuth redirect URI
 
 Every provider uses **one** redirect URI:
