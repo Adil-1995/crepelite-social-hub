@@ -37,6 +37,8 @@ import type {
   aiAdaptSchema,
   aiSettingsSchema,
   aiMarkAcceptedSchema,
+  appearanceSettingsSchema,
+  AppearanceSettings,
   AiCaptionSuggestion,
   AiContentSettings,
   AiMediaUnderstanding,
@@ -147,6 +149,8 @@ export const api = {
   adaptCaption: call<In<typeof aiAdaptSchema>, { generationId: string; variants: AiPlatformVariant[]; quota: AiQuotaState }>('adaptCaption'),
   markAiGenerationAccepted: call<In<typeof aiMarkAcceptedSchema>, { ok: true }>('markAiGenerationAccepted'),
   updateAiSettings: call<In<typeof aiSettingsSchema>, { ok: true; settings: AiContentSettings }>('updateAiSettings'),
+  getAppearance: call<In<typeof workspaceRef>, AppearanceSettings>('getAppearance'),
+  updateAppearance: call<In<typeof appearanceSettingsSchema>, { ok: true; brandColor: string }>('updateAppearance'),
 
   importPosts: call<
     In<typeof importPostsSchema>,

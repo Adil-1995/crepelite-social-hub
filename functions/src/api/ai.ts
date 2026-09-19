@@ -8,6 +8,8 @@ import {
   aiMarkAcceptedSchema,
   aiRewriteSchema,
   aiSettingsSchema,
+  appearanceSettingsSchema,
+  DEFAULT_APPEARANCE,
   workspaceRef,
   type AiAction,
   type AiContentSettings,
@@ -346,6 +348,38 @@ export const markAiGenerationAcceptedFn = callable(aiMarkAcceptedSchema, async (
     .doc(`${paths.workspace(data.workspaceId)}/aiGenerations/${data.generationId}`)
     .set({ accepted: true }, { merge: true });
   return { ok: true };
+});
+
+/**
+ * Workspace appearance.
+ *
+ * Lives here beside the other workspace settings rather than in its own file:
+ * it is the same document collection and the same permission.
+ */
+export const getAppearanceFn = callable(workspaceRef, async (data, req) => {
+  await requirePermission(req, data.workspaceId, 'workspace.read');
+  const snap = await db().doc(`${paths.workspace(data.workspaceId)}/settings/appearance`).get();
+  return { ...DEFAULT_APPEARANCE, ...((snap.data() as Partial<typeof DEFAULT_APPEARANCE> | undefined) ?? {}) };
+});
+
+export const updateAppearanceFn = callable(appearanceSettingsSchema, async (data, req) => {
+  const actor = await requirePermission(req, data.workspaceId, 'workspace.settings');
+  const brandColor = data.brandColor.toLowerCase();
+
+  await db()
+    .doc(`${paths.workspace(data.workspaceId)}/settings/appearance`)
+    .set({ brandColor, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+  await audit({
+    workspaceId: data.workspaceId,
+    actor: userActor(actor.uid, actor.email),
+    action: 'workspace.appearance_changed',
+    entityType: 'workspace',
+    entityId: data.workspaceId,
+    metadata: { brandColor },
+  });
+
+  return { ok: true, brandColor };
 });
 
 export const updateAiSettingsFn = callable(aiSettingsSchema, async (data, req) => {

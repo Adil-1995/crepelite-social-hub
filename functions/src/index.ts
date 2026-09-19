@@ -75,4 +75,6 @@ export {
   adaptCaptionFn as adaptCaption,
   markAiGenerationAcceptedFn as markAiGenerationAccepted,
   updateAiSettingsFn as updateAiSettings,
+  getAppearanceFn as getAppearance,
+  updateAppearanceFn as updateAppearance,
 } from './api/ai';

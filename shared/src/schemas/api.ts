@@ -273,3 +273,8 @@ export const aiSettingsSchema = z.object({
 });
 
 export const aiMarkAcceptedSchema = z.object({ workspaceId: id, generationId: id });
+
+export const appearanceSettingsSchema = z.object({
+  workspaceId: id,
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a 6-digit hex colour'),
+});

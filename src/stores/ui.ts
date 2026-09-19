@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
+import { withoutTransitions } from '@/theme/repaint';
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 const THEME_KEY = 'crepelite:theme';
@@ -36,8 +38,12 @@ export const useUiStore = defineStore('ui', () => {
 
   /** Applies the `.dark` class PrimeVue's `darkModeSelector` and Tailwind both read. */
   function applyTheme() {
-    document.documentElement.classList.toggle('dark', isDark.value);
-    document.documentElement.style.colorScheme = isDark.value ? 'dark' : 'light';
+    // Suppressed transitions, or the elements already on screen keep their old
+    // colours — see theme/repaint.ts.
+    withoutTransitions(() => {
+      document.documentElement.classList.toggle('dark', isDark.value);
+      document.documentElement.style.colorScheme = isDark.value ? 'dark' : 'light';
+    });
   }
 
   function setThemeMode(mode: ThemeMode) {

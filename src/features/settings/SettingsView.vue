@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
@@ -25,7 +25,18 @@ import { usePush } from '@/composables/usePush';
 import { timezoneOptions } from '@/lib/timezones';
 import Textarea from 'primevue/textarea';
 import AutoComplete from 'primevue/autocomplete';
-import { AI_LANGUAGES, AI_TONES, DEFAULT_AI_SETTINGS, type AiContentSettings } from '@shared/index';
+import ColorPicker from 'primevue/colorpicker';
+import Tag from 'primevue/tag';
+import {
+  AI_LANGUAGES,
+  AI_TONES,
+  BRAND_PRESETS,
+  DEFAULT_AI_SETTINGS,
+  DEFAULT_APPEARANCE,
+  normaliseBrandColor,
+  type AiContentSettings,
+} from '@shared/index';
+import { applyBrandColor, cacheBrandColor, cachedBrandColor, resetBrandColor } from '@/theme/brand';
 
 /** Workspace, appearance and notification settings. */
 const ws = useWorkspaceStore();
@@ -56,6 +67,7 @@ watch(
 
 onMounted(async () => {
   void loadAi();
+  void loadAppearance();
   if (!auth.user) return;
   const snap = await getDoc(doc(db, `users/${auth.user.uid}`)).catch(() => null);
   if (snap?.exists()) {
@@ -161,6 +173,75 @@ async function saveAi() {
     savingAi.value = false;
   }
 }
+
+// ── Brand colour ──────────────────────────────────────────────────────────
+/**
+ * The picker previews live, so the colour is applied as it changes and only
+ * persisted on save. Leaving without saving must not strand the workspace on
+ * a colour nobody chose, so the original is restored on unmount.
+ */
+const brandColor = ref(cachedBrandColor());
+const savedBrandColor = ref(cachedBrandColor());
+const savingBrand = ref(false);
+
+/** PrimeVue's ColorPicker works in bare hex, without the leading #. */
+const brandHex = computed({
+  get: () => brandColor.value.replace('#', ''),
+  set: (v: string) => {
+    const next = normaliseBrandColor(v);
+    if (next) preview(next);
+  },
+});
+
+function preview(hex: string) {
+  brandColor.value = hex;
+  applyBrandColor(hex);
+}
+
+const brandDirty = computed(() => brandColor.value !== savedBrandColor.value);
+
+async function loadAppearance() {
+  if (!ws.workspaceId) return;
+  try {
+    const a = await api.getAppearance({ workspaceId: ws.workspaceId });
+    savedBrandColor.value = a.brandColor;
+    brandColor.value = a.brandColor;
+    applyBrandColor(a.brandColor);
+  } catch {
+    // Falls back to whatever is cached locally.
+  }
+}
+
+async function saveBrand() {
+  if (!ws.workspaceId) return;
+  savingBrand.value = true;
+  try {
+    await api.updateAppearance({ workspaceId: ws.workspaceId, brandColor: brandColor.value });
+    savedBrandColor.value = brandColor.value;
+    cacheBrandColor(brandColor.value);
+    success('Brand colour saved', 'Everyone in this workspace sees it.');
+  } catch (e) {
+    reportApiError(e, 'Could not save the brand colour');
+  } finally {
+    savingBrand.value = false;
+  }
+}
+
+function revertBrand() {
+  preview(savedBrandColor.value);
+}
+
+function useDefaultBrand() {
+  preview(DEFAULT_APPEARANCE.brandColor);
+}
+
+// An unsaved preview must not outlive this screen.
+onUnmounted(() => {
+  if (brandDirty.value) {
+    if (savedBrandColor.value === DEFAULT_APPEARANCE.brandColor) resetBrandColor();
+    else applyBrandColor(savedBrandColor.value);
+  }
+});
 
 const notificationRows: Array<{ key: keyof NotificationPrefs; label: string; description: string }> = [
   { key: 'onFailed', label: 'A publication fails', description: 'A destination could not publish.' },
@@ -401,23 +482,125 @@ const notificationRows: Array<{ key: keyof NotificationPrefs; label: string; des
 
         <!-- Appearance -->
         <TabPanel value="appearance">
-          <Card>
-            <template #content>
-              <div class="flex flex-col gap-3">
-                <p class="text-sm font-medium text-ink">Theme</p>
-                <SelectButton
-                  :model-value="ui.themeMode"
-                  :options="themeOptions"
-                  option-label="label"
-                  option-value="value"
-                  :allow-empty="false"
-                  aria-label="Theme"
-                  @update:model-value="ui.setThemeMode"
-                />
-                <p class="text-xs text-ink-soft">This preference is stored on this device only.</p>
-              </div>
-            </template>
-          </Card>
+          <div class="flex flex-col gap-4">
+            <Card>
+              <template #content>
+                <div class="flex flex-col gap-3">
+                  <p class="text-sm font-medium text-ink">Theme</p>
+                  <SelectButton
+                    :model-value="ui.themeMode"
+                    :options="themeOptions"
+                    option-label="label"
+                    option-value="value"
+                    :allow-empty="false"
+                    aria-label="Theme"
+                    @update:model-value="ui.setThemeMode"
+                  />
+                  <p class="text-xs text-ink-soft">Light or dark is per device. The brand colour below is shared.</p>
+                </div>
+              </template>
+            </Card>
+
+            <Card>
+              <template #content>
+                <div class="flex flex-col gap-4">
+                  <div>
+                    <p class="text-sm font-medium text-ink">Brand colour</p>
+                    <p class="text-xs text-ink-muted">
+                      Buttons, links, active navigation and focus rings all follow it. Changes preview immediately
+                      and apply to the whole workspace once saved.
+                    </p>
+                  </div>
+
+                  <Message v-if="!canEditWorkspace" severity="info" :closable="false" size="small">
+                    Only owners and admins can change the brand colour.
+                  </Message>
+
+                  <!-- Presets -->
+                  <ul class="flex flex-wrap gap-2">
+                    <li v-for="preset in BRAND_PRESETS" :key="preset.value">
+                      <button
+                        type="button"
+                        class="flex w-20 flex-col items-center gap-1 rounded-lg p-1 transition-opacity"
+                        :class="canEditWorkspace ? 'hover:opacity-100' : 'cursor-not-allowed opacity-50'"
+                        :aria-pressed="brandColor === preset.value"
+                        :aria-label="preset.name"
+                        :disabled="!canEditWorkspace"
+                        @click="preview(preset.value)"
+                      >
+                        <span
+                          class="block h-9 w-9 rounded-full border-2 transition-colors"
+                          :class="brandColor === preset.value ? 'border-ink' : 'border-line'"
+                          :style="{ backgroundColor: preset.value }"
+                        />
+                        <span class="truncate text-[11px] text-ink-muted">{{ preset.name }}</span>
+                      </button>
+                    </li>
+                  </ul>
+
+                  <!-- Custom -->
+                  <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex flex-col gap-1.5">
+                      <label for="brand-picker" class="text-sm font-medium text-ink">Custom</label>
+                      <ColorPicker
+                        input-id="brand-picker"
+                        v-model="brandHex"
+                        format="hex"
+                        :disabled="!canEditWorkspace"
+                      />
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                      <label for="brand-hex" class="text-sm font-medium text-ink">Hex</label>
+                      <InputText
+                        id="brand-hex"
+                        :model-value="brandColor"
+                        class="w-32 font-mono"
+                        :disabled="!canEditWorkspace"
+                        @update:model-value="(v) => v && preview(normaliseBrandColor(v) ?? brandColor)"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- What it looks like -->
+                  <div class="rounded-xl border border-line p-3">
+                    <p class="mb-2 text-xs font-medium text-ink-soft">Preview</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <Button label="Primary" size="small" />
+                      <Button label="Outlined" size="small" outlined />
+                      <Button label="Text" size="small" text />
+                      <Tag value="Scheduled" icon="pi pi-clock" />
+                      <span class="text-sm font-medium text-brand-600">Link text</span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <Button
+                      label="Save brand colour"
+                      icon="pi pi-check"
+                      :loading="savingBrand"
+                      :disabled="!canEditWorkspace || !brandDirty"
+                      @click="saveBrand"
+                    />
+                    <Button
+                      v-if="brandDirty"
+                      label="Discard"
+                      severity="secondary"
+                      outlined
+                      :disabled="savingBrand"
+                      @click="revertBrand"
+                    />
+                    <Button
+                      label="Use the default"
+                      severity="secondary"
+                      text
+                      :disabled="!canEditWorkspace || brandColor === DEFAULT_APPEARANCE.brandColor"
+                      @click="useDefaultBrand"
+                    />
+                  </div>
+                </div>
+              </template>
+            </Card>
+          </div>
         </TabPanel>
       </TabPanels>
     </Tabs>

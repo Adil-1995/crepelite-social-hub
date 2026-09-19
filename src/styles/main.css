@@ -103,6 +103,21 @@
   [role='button'] {
     cursor: pointer;
   }
+
+  /*
+   * Set while the brand colour is being swapped (see theme/brand.ts).
+   *
+   * Chrome does not restart an in-flight `transition: background` when the
+   * custom property behind it changes, so a visible button would keep the old
+   * colour. Repainting with transitions off avoids that, and the swap is
+   * instant anyway — there is nothing worth animating.
+   */
+  .brand-switching,
+  .brand-switching *,
+  .brand-switching *::before,
+  .brand-switching *::after {
+    transition: none !important;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

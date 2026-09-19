@@ -69,6 +69,8 @@ All theming lives in `src/theme/`:
   colour schemes, component defaults, focus ring.
 - `primevue.ts` — `installPrimeVue(app)`: the plugin plus `ToastService`,
   `ConfirmationService`, `DialogService`, `v-tooltip` and `v-focustrap`.
+- `brand.ts` — the workspace brand colour at runtime (see below).
+- `repaint.ts` — `withoutTransitions()`, used by anything that recolours the page.
 
 Scattered per-page PrimeVue overrides are not allowed. If a component needs a
 different look everywhere, change the preset. If it needs it in one place, use
@@ -79,6 +81,46 @@ of PrimeVue internals.
 Tailwind utilities always win over PrimeVue component styles. Dark mode is
 class-driven (`.dark` on `<html>`), applied by `useUiStore().initTheme()` and
 pre-applied by the inline script in `index.html` to avoid a flash.
+
+### The brand colour is chosen by the workspace
+
+Settings → Appearance lets an owner or admin replace the brand colour. It is
+stored per workspace (`workspaces/{id}/settings/appearance`), so everyone on the
+team sees the same one, and mirrored into localStorage so `initBrandColor()` can
+apply it in `main.ts` before the first paint.
+
+`applyBrandColor()` generates a 50–950 ramp with PrimeVue's `palette()` and
+writes it as inline custom properties on `:root`. It has to write **three**
+families, because they are copies of one another rather than references:
+
+| Family | Read by |
+| --- | --- |
+| `--p-brand-*` | the preset's primitive palette |
+| `--p-primary-*` | the `primary` semantic, a copy of the same ramp |
+| `--color-brand-*` | the Tailwind `bg-brand-600` family |
+
+It also sets `--brand-contrast` / `--brand-contrast-dark`, which the preset uses
+as `primary.contrastColor`: a pale brand needs dark text on it, and dark mode
+uses the lighter 300 step so it is computed separately.
+
+Writing inline properties beats the stylesheet without regenerating it, which
+matters because the colour picker fires continuously while it is dragged.
+`updatePrimaryPalette()` is deliberately **not** used — it rewrites
+`--p-primary-*` only, which nothing visible reads.
+
+The shipped colour is a special case: its ramp in `tokens.ts` is hand-tuned and
+the generator does not reproduce it, so choosing the default *removes* the
+overrides instead of pinning a generated approximation.
+
+### Recolouring has to suppress transitions
+
+PrimeVue animates its colours with `transition: background 0.2s`, and Chrome
+does not restart an in-flight transition when the custom property behind it is
+rewritten. An element that is on screen therefore keeps its old colour until
+something unrelated forces a recalculation. Both the brand colour and the
+light/dark switch go through `withoutTransitions()`, which holds
+`.brand-switching` on `<html>` (`transition: none !important`, declared in the
+`base` layer so it outranks `primevue`) across the write.
 
 ## Feedback, confirmation, dialogs
 

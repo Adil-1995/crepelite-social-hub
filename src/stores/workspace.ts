@@ -5,6 +5,8 @@ import { can as canDo, type Permission, type SocialChannel, type SocialConnectio
 import { db } from '@/app/firebase';
 import { useAuthStore } from './auth';
 import { useLiveDoc, useLiveQuery } from '@/composables/useFirestore';
+import { applyBrandColor, cacheBrandColor } from '@/theme/brand';
+import type { AppearanceSettings } from '@shared/index';
 
 const STORAGE_KEY = 'crepelite.workspaceId';
 
@@ -47,6 +49,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const me = useLiveDoc<WorkspaceMember>(() => (workspaceId.value && auth.user ? `workspaces/${workspaceId.value}/members/${auth.user.uid}` : null), [workspaceId, () => auth.user?.uid]);
   const channelsQ = useLiveQuery<SocialChannel>(() => (workspaceId.value ? query(collection(db, `workspaces/${workspaceId.value}/socialChannels`), orderBy('name')) : null), [workspaceId]);
   const connectionsQ = useLiveQuery<SocialConnection>(() => (workspaceId.value ? collection(db, `workspaces/${workspaceId.value}/socialConnections`) : null), [workspaceId]);
+
+  // Appearance is workspace-level: the whole team sees the same brand colour.
+  // Read live so a change by one admin reaches everyone without a reload.
+  const appearance = useLiveDoc<AppearanceSettings>(
+    () => (workspaceId.value ? `workspaces/${workspaceId.value}/settings/appearance` : null),
+    [workspaceId],
+  );
+  watch(
+    () => appearance.data.value?.brandColor,
+    (colour) => {
+      if (!colour) return;
+      applyBrandColor(colour);
+      // Cached so the next start paints the right colour immediately.
+      cacheBrandColor(colour);
+    },
+    { immediate: true },
+  );
 
   const workspace = computed(() => ws.data.value);
   const role = computed(() => me.data.value?.role ?? auth.memberships.find((m) => m.workspaceId === workspaceId.value)?.role ?? null);

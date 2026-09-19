@@ -42,6 +42,9 @@ Last verified: 2026-09-19 — `typecheck`, `lint`, `test` (148 unit tests) and
 - [x] `useFeedback()` as the single entry point for toasts, API errors and confirmations
 - [x] Auto-import with tree-shaking; no forced PrimeVue chunk
 - [x] Every screen built on PrimeVue; no custom generic primitives exist
+- [x] Workspace-chosen brand colour (Settings → Appearance), applied to the
+      PrimeVue preset and the Tailwind utilities alike, with a contrast-safe
+      text colour for both schemes
 
 ## Phase 2 — Content system
 

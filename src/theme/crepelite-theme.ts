@@ -59,7 +59,9 @@ export const CrepeLitePreset = definePreset(Aura, {
         surface: surfaceLight,
         primary: {
           color: '{brand.600}',
-          contrastColor: '#ffffff',
+          // Computed from the chosen brand colour at runtime (see theme/brand.ts).
+          // A pale brand with hardcoded white text on it is unreadable.
+          contrastColor: 'var(--brand-contrast, #ffffff)',
           hoverColor: '{brand.700}',
           activeColor: '{brand.800}',
         },
@@ -89,7 +91,7 @@ export const CrepeLitePreset = definePreset(Aura, {
         surface: surfaceDark,
         primary: {
           color: '{brand.300}',
-          contrastColor: '{surface.900}',
+          contrastColor: 'var(--brand-contrast-dark, #17120f)',
           hoverColor: '{brand.200}',
           activeColor: '{brand.100}',
         },
