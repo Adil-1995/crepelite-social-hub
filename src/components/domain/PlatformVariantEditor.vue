@@ -34,14 +34,23 @@ const props = defineProps<{
   effectiveDescription: string;
 }>();
 
+/**
+ * One-way data flow: the composer owns `draft.variants`, this editor only
+ * describes the change it wants. Nothing here mutates the prop.
+ */
 const emit = defineEmits<{
   customise: [channelId: string];
   reset: [channelId: string];
+  patch: [patch: Partial<Pick<DraftVariant, 'format' | 'offsetMinutes'>>];
+  patchContent: [patch: Partial<DraftVariant['content']>];
+  patchSetting: [payload: { key: string; value: unknown }];
 }>();
+
+const variant = computed(() => props.variant);
 
 const caps = computed(() => props.manifest.capabilities);
 const fields = computed(() => caps.value.fields);
-const isCustom = computed(() => props.variant.syncMode === 'custom');
+const isCustom = computed(() => variant.value.syncMode === 'custom');
 
 const formatOptions = computed(() =>
   caps.value.formats.map((f) => ({ label: f.label, value: f.id, description: f.description })),
@@ -71,7 +80,7 @@ const descriptionRemaining = computed(() =>
 
 /** Settings fields that apply to the selected format. */
 const visibleSettings = computed(() =>
-  props.manifest.settingsFields.filter((f) => !f.formats || f.formats.includes(props.variant.format)),
+  props.manifest.settingsFields.filter((f) => !f.formats || f.formats.includes(variant.value.format)),
 );
 
 /** Static options, or options read from the channel metadata (Pinterest boards…). */
@@ -85,11 +94,11 @@ function optionsFor(field: SettingsField): SettingsFieldOption[] {
 }
 
 function settingValue(key: string): unknown {
-  return props.variant.providerSettings[key];
+  return variant.value.providerSettings[key];
 }
 
 function setSetting(key: string, value: unknown) {
-  props.variant.providerSettings[key] = value;
+  emit('patchSetting', { key, value });
 }
 
 function fieldIssue(field: string): ValidationIssue | undefined {
@@ -132,7 +141,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
           <label :for="`format-${variant.channelId}`" class="text-sm font-medium text-ink">Format</label>
           <Select
             :id="`format-${variant.channelId}`"
-            v-model="variant.format"
+            :model-value="variant.format"
+            @update:model-value="(v) => emit('patch', { format: v as string })"
             :options="formatOptions"
             option-label="label"
             option-value="value"
@@ -179,7 +189,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
             </label>
             <InputText
               :id="`title-${variant.channelId}`"
-              v-model="variant.content.title"
+              :model-value="variant.content.title"
+              @update:model-value="(v) => emit('patchContent', { title: v ?? '' })"
               :invalid="!!fieldIssue('content.title')"
               fluid
             />
@@ -195,7 +206,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
             </label>
             <Textarea
               :id="`text-${variant.channelId}`"
-              v-model="variant.content.text"
+              :model-value="variant.content.text"
+              @update:model-value="(v) => emit('patchContent', { text: v ?? '' })"
               rows="4"
               auto-resize
               :invalid="!!fieldIssue('content.text')"
@@ -212,7 +224,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
             </label>
             <Textarea
               :id="`desc-${variant.channelId}`"
-              v-model="variant.content.description"
+              :model-value="variant.content.description"
+              @update:model-value="(v) => emit('patchContent', { description: v ?? '' })"
               rows="3"
               auto-resize
               :invalid="!!fieldIssue('content.description')"
@@ -230,7 +243,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
             </label>
             <InputText
               :id="`link-${variant.channelId}`"
-              v-model="variant.content.link"
+              :model-value="variant.content.link"
+              @update:model-value="(v) => emit('patchContent', { link: v ?? '' })"
               type="url"
               inputmode="url"
               placeholder="https://"
@@ -342,7 +356,8 @@ function fieldIssue(field: string): ValidationIssue | undefined {
           <div class="flex items-center gap-2">
             <InputNumber
               :input-id="`offset-${variant.channelId}`"
-              v-model="variant.offsetMinutes"
+              :model-value="variant.offsetMinutes"
+              @update:model-value="(v) => emit('patch', { offsetMinutes: v ?? 0 })"
               :min="0"
               :max="10080"
               suffix=" min"

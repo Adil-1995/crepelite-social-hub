@@ -20,6 +20,16 @@ export default tseslint.config(
     rules: {
       // PrimeVue components are PascalCase single words (Button, Card, Tag…).
       'vue/multi-word-component-names': 'off',
+      // Whitespace and attribute wrapping are a formatter's job. This project
+      // has no Prettier step, so these rules would only produce noise that
+      // hides real findings.
+      'vue/max-attributes-per-line': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/html-self-closing': 'off',
+      'vue/html-indent': 'off',
+      'vue/html-closing-bracket-newline': 'off',
+      'vue/attributes-order': 'off',
+      'vue/first-attribute-linebreak': 'off',
     },
   },
   {

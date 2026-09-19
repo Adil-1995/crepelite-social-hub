@@ -409,6 +409,9 @@ const summaryIssues = computed(() =>
                   :effective-description="c.effectiveContent(v).description"
                   @customise="c.customise"
                   @reset="c.resetToMaster"
+                  @patch="(patch) => Object.assign(v, patch)"
+                  @patch-content="(patch) => Object.assign(v.content, patch)"
+                  @patch-setting="({ key, value }) => (v.providerSettings[key] = value)"
                 />
               </template>
 

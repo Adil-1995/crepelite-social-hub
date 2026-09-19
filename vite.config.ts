@@ -70,7 +70,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) return 'firebase';
-          if (id.includes('node_modules/primevue') || id.includes('node_modules/@primeuix')) return 'primevue';
           if (id.includes('node_modules/luxon') || id.includes('node_modules/zod')) return 'vendor-utils';
           return undefined;
         },
