@@ -88,7 +88,15 @@ const activeUploads = computed(() => uploads.items.filter((i) => i.state !== 'do
     <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center gap-2">
         <Button label="Upload" icon="pi pi-upload" size="small" :loading="uploads.uploading.value" @click="pickFiles" />
-        <input ref="fileInput" type="file" accept="image/*,video/*" multiple class="hidden" @change="onFiles" />
+        <input
+          ref="fileInput"
+          type="file"
+          aria-label="Choose images or videos to upload"
+          accept="image/*,video/*"
+          multiple
+          class="hidden"
+          @change="onFiles"
+        />
         <span class="text-sm text-ink-muted">{{ picked.length }} of {{ max }} selected</span>
       </div>
 

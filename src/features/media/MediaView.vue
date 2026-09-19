@@ -135,6 +135,7 @@ const activeUploads = computed(() => uploads.items.filter((i) => i.state !== 'do
       <input
         ref="fileInput"
         type="file"
+        aria-label="Choose images or videos to upload"
         accept="image/*,video/*"
         multiple
         class="hidden"
