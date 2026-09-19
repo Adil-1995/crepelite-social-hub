@@ -28,11 +28,27 @@ This is **one shared redirect URI for every provider** — the backend
 identifies the provider from the signed `state` parameter, not from the path.
 It can be overridden with the `OAUTH_REDIRECT_URI` environment variable.
 
-### Two separate settings, both required
+### The error message is misleading
 
-Registering the redirect URI is not enough. Meta also checks the bare domain,
-in a different place, and returns *"Can't load URL: The domain of this URL
-isn't included in the app's domains"* when it is missing:
+If the dialog returns *"Can't load URL: The domain of this URL isn't included
+in the app's domains"*, the cause is almost always **Valid OAuth Redirect
+URIs**, not App Domains. Since 2018 Meta requires the redirect URI to be in
+that strict allowlist; App Domains alone has not been sufficient for OAuth for
+years, but the error text was never updated.
+
+Diagnosing it without guessing:
+
+```bash
+# Is App Domains actually set? (app access token = "<app-id>|<app-secret>")
+curl -s "https://graph.facebook.com/v26.0/<app-id>?fields=app_domains,link&access_token=<app-id>|<app-secret>"
+
+# Is Facebook Login itself working? Omit redirect_uri — "No redirect URI in
+# the params" means the app and the product are fine and only the URI is
+# being rejected.
+https://www.facebook.com/v26.0/dialog/oauth?client_id=<app-id>&response_type=code&scope=pages_show_list
+```
+
+All three of these must be set:
 
 | Setting | Where | Value |
 | --- | --- | --- |
