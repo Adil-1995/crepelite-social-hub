@@ -156,8 +156,8 @@ Live at **https://crepelite-social-hub.web.app**.
       shell, PWA assets served
 - [x] Email/password sign-in confirmed working against the live project
       (test account created and deleted)
-- [ ] **Firebase Storage bucket** — one-time "Get Started" in the console; the
-      CLI has no command for it. Blocks all media upload
+- [x] Firebase Storage bucket created and `storage.rules` deployed;
+      unauthenticated reads confirmed denied (403)
 - [ ] Google sign-in provider — console toggle; both hosting domains are
       already authorised
 - [ ] Budget alerts — billing-account permission, not available from the CLI
@@ -173,7 +173,7 @@ method, an approval or an elevated install that cannot be automated.
 | --- | --- | --- |
 | 1 | Install a JDK 21+ (needs UAC elevation) | Emulators, rules tests, integration tests, seeding |
 | 2 | **Enable Blaze billing on `crepelite-social-hub`** | Functions, Tasks, Scheduler, Cloud Run, Storage, Secret Manager, the TTL policy — in short, everything server-side |
-| 3 | Enable Email/Password and Google in Authentication (console) | Sign-in |
+| 3 | Enable Google in Authentication (console) — email/password already works | Google sign-in |
 | 4 | Install `gcloud` (optional) | Queue pre-creation, budget alerts |
 | 5 | Meta App Review | Live Facebook and Instagram publishing |
 | 6 | TikTok Content Posting audit | Public TikTok posts |
