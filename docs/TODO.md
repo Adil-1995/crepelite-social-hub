@@ -139,12 +139,27 @@ Live at **https://crepelite-social-hub.web.app**.
       headers all verified over HTTPS
 - [x] `functions/.env.crepelite-social-hub` (public config only)
 - [x] Emulator configuration, seed script guarded against real projects
-- [ ] **Blaze billing** — everything below is blocked on it
-- [ ] Firestore TTL policy on `oauthStates.expiresAt` (needs billing)
-- [ ] Firebase Storage bucket (needs billing)
-- [ ] Secrets in Secret Manager (needs billing)
-- [ ] Cloud Functions, Tasks, Scheduler (need billing)
-- [ ] Auth sign-in providers enabled (console, one-time)
+- [x] **Blaze billing enabled**
+- [x] Firestore TTL policy on `oauthStates.expiresAt`
+- [x] Six secrets in Secret Manager (provider secrets hold the `unset`
+      placeholder the code understands; the two application keys are real
+      32-byte random values)
+- [x] **43 Cloud Functions deployed** to europe-west1 — exactly the 43 the
+      source exports
+- [x] 4 scheduled functions live: `queueUpcomingDeliveries`,
+      `reconcileDeliveries`, `connectionHealth`, `cleanupOAuthStates`
+- [x] Artifact Registry cleanup policy (3 days) so container images do not
+      accumulate a monthly bill
+- [x] Hosting rewrites verified end to end: `/api/oauth/callback` → 302,
+      `/webhooks/tiktok` → 403 (unsigned request rejected), `/media-pull` → 403
+- [x] Callables reject unauthenticated calls (401), SPA deep links serve the
+      shell, PWA assets served
+- [x] Email/password sign-in confirmed working against the live project
+      (test account created and deleted)
+- [ ] **Firebase Storage bucket** — one-time "Get Started" in the console; the
+      CLI has no command for it. Blocks all media upload
+- [ ] Google sign-in provider — console toggle; both hosting domains are
+      already authorised
 - [ ] Budget alerts — billing-account permission, not available from the CLI
 
 ---
