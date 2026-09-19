@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import Checkbox from 'primevue/checkbox';
-import Message from 'primevue/message';
-import Avatar from 'primevue/avatar';
+import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import Message from 'primevue/message';
 import { useRouter } from 'vue-router';
 import type { SocialChannel } from '@shared/index';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -12,73 +10,90 @@ import ProviderIcon from '@/components/domain/ProviderIcon.vue';
 import EmptyState from '@/components/domain/EmptyState.vue';
 
 /**
- * Channel picker grouped by provider.
+ * Destination picker: one tappable avatar per account, with the network badged
+ * on the corner.
  *
- * Providers come from the workspace's connected channels and the shared
- * manifest catalog — no platform is hardcoded here, so a new provider appears
- * automatically once its manifest and connection exist.
+ * Only accounts that can actually receive a post are listed. A disabled
+ * channel, or one whose authorisation has lapsed, is not shown at all — it is
+ * noise in the one place where a mis-tap publishes to the wrong business.
+ * Those live on the connections screen, which is where they get fixed.
+ *
+ * Providers come from the shared manifest catalog, so a new network appears
+ * here automatically.
  */
 const model = defineModel<string[]>({ required: true });
-const props = withDefaults(defineProps<{ disabled?: boolean; showUnavailable?: boolean }>(), {
+const props = withDefaults(defineProps<{ disabled?: boolean; compact?: boolean }>(), {
   disabled: false,
-  showUnavailable: true,
+  compact: false,
 });
 
 const ws = useWorkspaceStore();
 const providers = useProvidersStore();
 const router = useRouter();
 
-interface Group {
-  provider: string;
-  displayName: string;
-  channels: SocialChannel[];
-}
+/** Publishable right now: enabled, and the connection is healthy. */
+const available = computed(() =>
+  ws.channels
+    .filter((c) => c.enabled && c.status === 'connected')
+    .slice()
+    .sort((a, b) => {
+      const p = (providers.manifest(a.provider)?.displayName ?? a.provider).localeCompare(
+        providers.manifest(b.provider)?.displayName ?? b.provider,
+      );
+      return p !== 0 ? p : a.name.localeCompare(b.name);
+    }),
+);
 
-const groups = computed<Group[]>(() => {
-  const byProvider = new Map<string, SocialChannel[]>();
-  for (const c of ws.channels) {
-    if (!byProvider.has(c.provider)) byProvider.set(c.provider, []);
-    byProvider.get(c.provider)!.push(c);
+/** Accounts hidden because they need attention, counted for the hint below. */
+const needsAttention = computed(() => ws.channels.filter((c) => c.enabled && c.status !== 'connected').length);
+
+const hasAnyConnection = computed(() => ws.connections.length > 0);
+
+/**
+ * Local mirror of the selection.
+ *
+ * `model.value` reads the incoming prop, which only updates after the parent
+ * re-renders. Two taps inside one tick would both read the pre-update value
+ * and the second would silently discard the first — on the one control where
+ * a lost selection means publishing to the wrong account.
+ */
+const selection = ref<string[]>([...model.value]);
+watch(model, (v) => {
+  if (v.length !== selection.value.length || v.some((id, i) => id !== selection.value[i])) {
+    selection.value = [...v];
   }
-  return [...byProvider.entries()]
-    .map(([provider, channels]) => ({
-      provider,
-      displayName: providers.manifest(provider)?.displayName ?? provider,
-      channels: channels.slice().sort((a, b) => a.name.localeCompare(b.name)),
-    }))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
 });
 
-const hasAnyChannel = computed(() => ws.channels.length > 0);
-
-/** A channel can be targeted only when it is enabled and its auth is healthy. */
-function selectable(c: SocialChannel): boolean {
-  return c.enabled && c.status === 'connected';
+function isSelected(id: string): boolean {
+  return selection.value.includes(id);
 }
 
-function reasonUnavailable(c: SocialChannel): string {
-  if (!c.enabled) return 'Disabled for this workspace';
-  if (c.status === 'needs_reauth' || c.status === 'expired') return 'Reconnect this account to publish';
-  if (c.status === 'revoked') return 'Access was revoked';
-  return 'Unavailable';
+function commit(next: string[]) {
+  selection.value = next;
+  model.value = next;
 }
 
-function toggleProvider(g: Group) {
-  const ids = g.channels.filter(selectable).map((c) => c.id);
-  const allOn = ids.every((id) => model.value.includes(id));
-  model.value = allOn ? model.value.filter((id) => !ids.includes(id)) : [...new Set([...model.value, ...ids])];
+function toggle(channel: SocialChannel) {
+  if (props.disabled) return;
+  commit(
+    isSelected(channel.id)
+      ? selection.value.filter((id) => id !== channel.id)
+      : [...selection.value, channel.id],
+  );
 }
 
-function providerState(g: Group): boolean {
-  const ids = g.channels.filter(selectable).map((c) => c.id);
-  return ids.length > 0 && ids.every((id) => model.value.includes(id));
+function selectAll() {
+  commit(selection.value.length === available.value.length ? [] : available.value.map((c) => c.id));
 }
+
+const allSelected = computed(() => available.value.length > 0 && selection.value.length === available.value.length);
+const initial = (name: string) => name.trim().slice(0, 1).toUpperCase() || '?';
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-3">
     <EmptyState
-      v-if="!hasAnyChannel"
+      v-if="!hasAnyConnection"
       icon="pi pi-link"
       title="No accounts connected"
       message="Connect a social account to choose where this post goes."
@@ -87,65 +102,93 @@ function providerState(g: Group): boolean {
       @action="router.push('/connections')"
     />
 
-    <fieldset v-for="g in groups" :key="g.provider" class="flex flex-col gap-2 border-0 p-0">
-      <legend class="sr-only">{{ g.displayName }}</legend>
+    <EmptyState
+      v-else-if="!available.length"
+      icon="pi pi-exclamation-triangle"
+      title="No account can publish right now"
+      message="Every connected account is disabled or needs reconnecting."
+      action-label="Fix connections"
+      action-icon="pi pi-arrow-right"
+      @action="router.push('/connections')"
+    />
 
-      <div class="flex items-center gap-2">
-        <ProviderIcon :provider="g.provider" :size="18" />
-        <span class="text-sm font-semibold text-ink">{{ g.displayName }}</span>
+    <template v-else>
+      <div v-if="!compact" class="flex items-center gap-2">
+        <span class="text-sm font-medium text-ink">
+          {{ selection.length ? `${selection.length} selected` : 'Where does this go?' }}
+        </span>
         <Button
-          v-if="g.channels.filter(selectable).length > 1"
-          :label="providerState(g) ? 'Clear' : 'All'"
+          v-if="available.length > 1"
+          :label="allSelected ? 'Clear' : 'Select all'"
           text
           size="small"
-          :disabled="props.disabled"
           class="ml-auto"
-          @click="toggleProvider(g)"
+          :disabled="disabled"
+          @click="selectAll"
         />
       </div>
 
-      <ul class="flex flex-col gap-1">
-        <li v-for="c in g.channels" :key="c.id">
-          <label
-            v-if="selectable(c)"
-            class="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted"
+      <ul class="flex flex-wrap gap-3">
+        <li v-for="c in available" :key="c.id">
+          <button
+            type="button"
+            class="group flex w-[4.5rem] flex-col items-center gap-1.5 rounded-xl p-1 transition-opacity"
+            :class="[disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer', !isSelected(c.id) && !disabled ? 'opacity-70 hover:opacity-100' : '']"
+            :aria-pressed="isSelected(c.id)"
+            :aria-label="`${c.name} on ${providers.manifest(c.provider)?.displayName ?? c.provider}`"
+            :disabled="disabled"
+            @click="toggle(c)"
           >
-            <Checkbox v-model="model" :value="c.id" :input-id="`ch-${c.id}`" :disabled="props.disabled" />
-            <Avatar
-              :image="c.avatarUrl ?? undefined"
-              :label="c.avatarUrl ? undefined : c.name.slice(0, 1).toUpperCase()"
-              shape="circle"
-              size="normal"
-            />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm text-ink">{{ c.name }}</span>
-              <span v-if="c.handle" class="block truncate text-xs text-ink-soft">{{ c.handle }}</span>
-            </span>
-          </label>
+            <span class="relative block">
+              <span
+                class="block h-12 w-12 overflow-hidden rounded-full border-2 bg-muted transition-colors"
+                :class="isSelected(c.id) ? 'border-brand-500' : 'border-line group-hover:border-ink-soft'"
+              >
+                <img
+                  v-if="c.avatarUrl"
+                  :src="c.avatarUrl"
+                  alt=""
+                  loading="lazy"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else class="flex h-full w-full items-center justify-center text-base font-semibold text-ink-soft">
+                  {{ initial(c.name) }}
+                </span>
+              </span>
 
-          <div
-            v-else-if="props.showUnavailable"
-            class="flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5 opacity-60"
-          >
-            <i class="pi pi-lock text-ink-soft" aria-hidden="true" />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm text-ink">{{ c.name }}</span>
-              <span class="block truncate text-xs text-ink-soft">{{ reasonUnavailable(c) }}</span>
+              <!-- Network badge -->
+              <span
+                class="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-surface bg-surface"
+              >
+                <ProviderIcon :provider="c.provider" :size="12" />
+              </span>
+
+              <!-- Selected tick -->
+              <span
+                v-if="isSelected(c.id)"
+                class="absolute -left-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-white"
+                aria-hidden="true"
+              >
+                <i class="pi pi-check" style="font-size: 0.6rem" />
+              </span>
             </span>
-            <Button
-              v-if="c.status === 'needs_reauth' || c.status === 'expired'"
-              label="Reconnect"
-              size="small"
-              text
-              @click="router.push('/connections')"
-            />
-          </div>
+
+            <span class="w-full truncate text-center text-[11px] leading-tight text-ink" :title="c.name">
+              {{ c.name }}
+            </span>
+          </button>
         </li>
       </ul>
-    </fieldset>
 
-    <Message v-if="hasAnyChannel && model.length === 0" severity="warn" :closable="false" size="small">
-      Select at least one destination.
-    </Message>
+      <p v-if="needsAttention && !compact" class="text-xs text-ink-soft">
+        {{ needsAttention }} {{ needsAttention === 1 ? 'account is' : 'accounts are' }} hidden because
+        {{ needsAttention === 1 ? 'it needs' : 'they need' }} reconnecting.
+        <Button label="Review" text size="small" @click="router.push('/connections')" />
+      </p>
+
+      <Message v-if="!selection.length && !compact" severity="warn" :closable="false" size="small">
+        Pick at least one destination.
+      </Message>
+    </template>
   </div>
 </template>
