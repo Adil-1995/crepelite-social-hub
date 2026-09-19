@@ -23,8 +23,6 @@ export function installPrimeVue(app: App): void {
     // Ripple is off: it fights with native touch feedback on mobile.
     ripple: false,
     inputVariant: 'outlined',
-    // Mobile-first default sizing for form fields and buttons.
-    pt: undefined,
     ptOptions: { mergeSections: true, mergeProps: true },
     zIndex: {
       modal: 1100,
@@ -32,7 +30,10 @@ export function installPrimeVue(app: App): void {
       menu: 1000,
       tooltip: 1200,
     },
-    locale: undefined,
+    // No `locale` or `pt` key here on purpose. PrimeVue merges this object
+    // over its defaults, so an explicit `undefined` *replaces* the default
+    // rather than leaving it alone — and every component that reads
+    // `locale.aria.*` (Dialog, DatePicker, Paginator…) then throws.
   });
 
   app.use(ToastService);

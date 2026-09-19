@@ -30,6 +30,8 @@ export default tseslint.config(
       'vue/html-closing-bracket-newline': 'off',
       'vue/attributes-order': 'off',
       'vue/first-attribute-linebreak': 'off',
+      // Test files legitimately define several probe components in one file.
+      'vue/one-component-per-file': 'off',
     },
   },
   {
