@@ -237,8 +237,8 @@ async function toggleChannel(channelId: string, enabled: boolean) {
             </li>
           </ul>
           <p v-if="manifest" class="mt-3 text-xs text-ink-soft">
-            API {{ manifest.apiVersion }} ·
-            <a :href="manifest.docs" target="_blank" rel="noopener noreferrer" class="underline">provider documentation</a>
+            API {{ manifest.apiVersion }} · documented in
+            <code class="rounded bg-muted px-1">{{ manifest.docs }}</code>
           </p>
         </template>
       </Card>
