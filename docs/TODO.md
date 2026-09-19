@@ -67,8 +67,11 @@ All five are implemented against their current official APIs. None can be
 verified live without credentials and approval — see
 [`provider-approval-checklist.md`](./provider-approval-checklist.md).
 
-- [~] Facebook Pages — App Review needed
-- [~] Instagram — App Review needed
+- [~] Facebook Pages — **credentials live and verified**: the connections
+      screen enables Connect, `startOAuth` builds a correct authorization URL
+      (client_id, signed state, all six scopes) and Meta accepts the request.
+      Blocked on **App Domains** in the Meta console, then App Review
+- [~] Instagram — same grant as Facebook, same two blockers
 - [~] TikTok — Content Posting audit needed (posts stay private until it passes)
 - [~] Pinterest — credentials needed
 - [~] YouTube — OAuth verification needed

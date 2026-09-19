@@ -28,6 +28,20 @@ This is **one shared redirect URI for every provider** — the backend
 identifies the provider from the signed `state` parameter, not from the path.
 It can be overridden with the `OAUTH_REDIRECT_URI` environment variable.
 
+### Two separate settings, both required
+
+Registering the redirect URI is not enough. Meta also checks the bare domain,
+in a different place, and returns *"Can't load URL: The domain of this URL
+isn't included in the app's domains"* when it is missing:
+
+| Setting | Where | Value |
+| --- | --- | --- |
+| Valid OAuth Redirect URIs | Facebook Login → Settings | `https://<domain>/api/oauth/callback` |
+| **App Domains** | **Settings → Basic** | `<domain>` (no scheme, no path) |
+| Site URL | Settings → Basic → + Add Platform → Website | `https://<domain>/` |
+
+For this deployment the domain is `crepelite-social-hub.web.app`.
+
 
 ### Scopes requested
 

@@ -20,6 +20,10 @@ and [`providers/instagram.md`](./providers/instagram.md).
 - [ ] Create a **Business**-type app at developers.facebook.com
 - [ ] Add the **Facebook Login** and **Instagram** products
 - [ ] Register redirect URI `https://<domain>/api/oauth/callback`
+      (Facebook Login → Settings)
+- [ ] Add the bare domain to **App Domains** (Settings → Basic) and a
+      **Website** platform with the Site URL — Meta checks these separately
+      from the redirect URI and blocks the dialog without them
 - [ ] Complete **Business Verification** (needs company documents)
 - [ ] Submit App Review for: `pages_show_list`, `pages_read_engagement`,
       `pages_manage_posts`, `business_management`, `instagram_basic`,
